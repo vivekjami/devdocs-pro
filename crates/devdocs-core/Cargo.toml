@@ -1,0 +1,44 @@
+[package]
+name = "devdocs-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core functionality for DevDocs Pro API documentation generator"
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Error handling and logging
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Data structures and algorithms
+uuid = { workspace = true }
+
+# Data integrity
+sha2 = { workspace = true }
+hmac = { workspace = true }
+aes-gcm = { workspace = true }
+
+# Schema inference
+regex = { workspace = true }
+
+# Storage
+sqlx = { workspace = true }
+memmap2 = { workspace = true }
+zstd = { workspace = true }
+
+[dev-dependencies]
+assert_matches = { workspace = true }
+mockall = { workspace = true }
+criterion = { workspace = true }

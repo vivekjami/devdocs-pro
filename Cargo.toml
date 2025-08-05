@@ -1,0 +1,62 @@
+[workspace]
+members = [
+    "crates/devdocs-core",
+    "crates/devdocs-middleware",
+    "crates/devdocs-bindings",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Vivek Jami <vivek@example.com>"]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/vivekjami/devdocs-pro"
+description = "Real-time API documentation generated from actual HTTP traffic"
+
+[workspace.dependencies]
+# Core dependencies
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.35", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+thiserror = "1.0"
+futures = "0.3"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+async-trait = "0.1"
+
+# HTTP processing
+hyper = { version = "1.1", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.4", features = ["trace"] }
+http = "0.2"
+http-body-util = "0.1"
+
+# Data integrity and security
+sha2 = "0.10"
+hmac = "0.12"
+aes-gcm = "0.10"
+regex = "1.10"
+memmap2 = "0.9"
+zstd = "0.13"
+
+# Storage and persistence
+sqlx = { version = "0.7", features = ["runtime-tokio", "sqlite", "postgres", "json", "uuid", "time"] }
+
+# Testing
+assert_matches = "1.5"
+mockall = "0.12"
+criterion = "0.5"
+
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+panic = "abort"
+codegen-units = 1
