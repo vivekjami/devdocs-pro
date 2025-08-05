@@ -1,0 +1,23 @@
+# Enable hot-reload for development
+[reload]
+watch = ["src", "crates", "Cargo.toml"]
+clear_screen = true
+
+# Build configuration
+[build]
+delay = 500
+
+# Commands to run on file changes
+[[command]]
+exec = "cargo check --workspace"
+name = "check"
+
+[[command]]
+exec = "cargo test --workspace"
+name = "test"
+watch = false
+
+[[command]]
+exec = "cargo clippy --workspace --all-targets -- -D warnings"
+name = "clippy"
+watch = false

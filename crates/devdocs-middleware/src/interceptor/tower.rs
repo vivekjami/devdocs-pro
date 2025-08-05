@@ -2,10 +2,7 @@
 
 use super::{HttpInterceptor, InterceptorConfig};
 use devdocs_core::models::{HttpTransaction, Request, Response};
-use devdocs_core::Result;
 use http::{Request as HttpRequest, Response as HttpResponse};
-use http_body_util::BodyExt;
-use hyper::body::Incoming;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 use tracing::{debug, warn};
@@ -59,16 +56,13 @@ pub struct DevDocsService<S> {
 impl<S, ReqBody, ResBody> Service<HttpRequest<ReqBody>> for DevDocsService<S>
 where
     S: Service<HttpRequest<ReqBody>, Response = HttpResponse<ResBody>>,
-    ReqBody: hyper::body::Body + Send + 'static,
-    ReqBody::Data: Send,
-    ReqBody::Error: std::error::Error + Send + Sync,
-    ResBody: hyper::body::Body + Send + 'static,
-    ResBody::Data: Send,
-    ResBody::Error: std::error::Error + Send + Sync,
+    S::Error: std::fmt::Debug,
+    ReqBody: Default,
+    ResBody: Default,
 {
     type Response = HttpResponse<ResBody>;
     type Error = S::Error;
-    type Future = DevDocsFuture<S::Future>;
+    type Future = S::Future;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -81,10 +75,7 @@ where
 
         if should_exclude {
             debug!("Excluding request to path: {}", path);
-            return DevDocsFuture {
-                inner: self.inner.call(request),
-                should_process: false,
-            };
+            return self.inner.call(request);
         }
 
         // Check content type if available
@@ -95,51 +86,15 @@ where
         {
             if self.config.should_exclude_content_type(content_type) {
                 debug!("Excluding request with content type: {}", content_type);
-                return DevDocsFuture {
-                    inner: self.inner.call(request),
-                    should_process: false,
-                };
+                return self.inner.call(request);
             }
         }
 
         debug!("Processing request to path: {}", path);
 
-        DevDocsFuture {
-            inner: self.inner.call(request),
-            should_process: true,
-        }
-    }
-}
-
-/// Future wrapper for DevDocs processing
-pub struct DevDocsFuture<F> {
-    inner: F,
-    should_process: bool,
-}
-
-impl<F, ResBody, E> std::future::Future for DevDocsFuture<F>
-where
-    F: std::future::Future<Output = Result<HttpResponse<ResBody>, E>>,
-{
-    type Output = Result<HttpResponse<ResBody>, E>;
-
-    fn poll(self: std::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.get_mut();
-        let inner = unsafe { std::pin::Pin::new_unchecked(&mut this.inner) };
-
-        match inner.poll(cx) {
-            Poll::Ready(result) => {
-                if this.should_process {
-                    if let Ok(response) = &result {
-                        debug!("Response status: {}", response.status());
-                        // TODO: Process the response and create HttpTransaction
-                        // This will be implemented in the next phase
-                    }
-                }
-                Poll::Ready(result)
-            }
-            Poll::Pending => Poll::Pending,
-        }
+        // TODO: In the next phase, we'll capture the request/response here
+        // For now, just pass through
+        self.inner.call(request)
     }
 }
 

@@ -10,7 +10,6 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::sync::Arc;
 use thiserror::Error;
 
 pub mod analysis;
@@ -128,5 +127,8 @@ pub mod version {
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
     
     /// Build information, populated during CI build
-    pub const BUILD_INFO: &str = option_env!("BUILD_INFO").unwrap_or("development");
+    pub const BUILD_INFO: &str = match option_env!("BUILD_INFO") {
+        Some(info) => info,
+        None => "development",
+    };
 }

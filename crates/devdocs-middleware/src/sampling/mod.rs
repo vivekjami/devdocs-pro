@@ -3,7 +3,6 @@
 use devdocs_core::models::HttpTransaction;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::debug;
 
 /// Trait for sampling strategies
 pub trait SamplingStrategy: Send + Sync {
@@ -169,14 +168,13 @@ impl SamplingStrategy for EndpointSampling {
         }
         
         // Get or create counter for this endpoint
-        let counter = {
+        let count = {
             let mut counters = self.counters.write().unwrap();
-            counters.entry(endpoint.clone()).or_insert_with(|| AtomicUsize::new(0));
-            counters.get(&endpoint).unwrap().clone()
+            let counter = counters.entry(endpoint.clone()).or_insert_with(|| AtomicUsize::new(0));
+            let current_count = counter.load(Ordering::Relaxed);
+            counter.store(current_count.wrapping_add(1), Ordering::Relaxed);
+            current_count
         };
-        
-        let count = counter.load(Ordering::Relaxed);
-        counter.store(count.wrapping_add(1), Ordering::Relaxed);
         
         let threshold = (1.0 / rate) as usize;
         count % threshold == 0
@@ -187,7 +185,7 @@ impl SamplingStrategy for EndpointSampling {
     }
 
     fn reset(&self) {
-        let mut counters = self.counters.write().unwrap();
+        let counters = self.counters.write().unwrap();
         for counter in counters.values() {
             counter.store(0, Ordering::Relaxed);
         }

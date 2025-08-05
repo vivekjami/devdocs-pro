@@ -15,7 +15,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 /// Represents a captured HTTP transaction (request + response)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct HttpTransaction {
     /// Unique transaction ID
     pub id: Uuid,

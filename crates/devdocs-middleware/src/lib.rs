@@ -14,7 +14,7 @@ pub mod interceptor;
 pub mod sampling;
 pub mod security;
 
-use devdocs_core::{Config, DevDocs, Result};
+use devdocs_core::{Config, DevDocs};
 use std::sync::Arc;
 
 /// DevDocs middleware instance

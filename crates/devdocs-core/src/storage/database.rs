@@ -4,7 +4,7 @@ use super::{IntegrityReport, Storage, StorageFilter, StorageStats};
 use crate::models::HttpTransaction;
 use crate::{DevDocsError, Result, StorageConfig};
 use async_trait::async_trait;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Database storage implementation
 pub struct DatabaseStorage {
