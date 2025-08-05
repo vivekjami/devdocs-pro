@@ -1,0 +1,23 @@
+[package]
+name = "devdocs-middleware"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+devdocs-core = { path = "../devdocs-core" }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-layer = { workspace = true }
+tower-service = { workspace = true }
+hyper = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+bytes = "1.0"
+futures = "0.3"
+pin-project-lite = "0.2"
+rand = "0.8"
+[dev-dependencies]
+tower = { workspace = true, features = ["util"] }

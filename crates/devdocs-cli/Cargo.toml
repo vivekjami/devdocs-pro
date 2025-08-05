@@ -1,0 +1,13 @@
+[package]
+name = "devdocs-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+devdocs-core = { path = "../devdocs-core" }
+devdocs-middleware = { path = "../devdocs-middleware" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { version = "4.0", features = ["derive"] }
+anyhow = { workspace = true }
