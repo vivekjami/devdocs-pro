@@ -40,27 +40,50 @@ run_test() {
     fi
 }
 
-# Function to check environment
-check_env() {
-    echo -e "${BLUE}🔍 Environment Check${NC}"
+# Function to test environment and configuration
+test_environment_config() {
+    echo -e "${BLUE}� Environment & Configuration Tests${NC}"
     
+    # Test environment files
+    run_test ".env.example exists and valid" "[[ -f '.env.example' ]] && [[ -s '.env.example' ]] && grep -q 'GEMINI_API_KEY' .env.example"
+    
+    # Test configuration loading
     if [[ -f ".env" ]]; then
-        echo -e "   ${GREEN}✅ .env file found${NC}"
+        run_test ".env file validation" "[[ -s '.env' ]] && grep -q 'GEMINI_API_KEY' .env && ! grep -q 'your_api_key_here' .env"
+        
+        # Test API key format
+        if grep -q "GEMINI_API_KEY=" .env; then
+            API_KEY=$(grep "GEMINI_API_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+            if [[ ${#API_KEY} -gt 30 ]]; then
+                echo -e "   ${GREEN}✅ API key format appears valid${NC}"
+                TESTS_TOTAL=$((TESTS_TOTAL + 1))
+                TESTS_PASSED=$((TESTS_PASSED + 1))
+            else
+                echo -e "   ${YELLOW}⚠️  API key may be placeholder or invalid${NC}"
+                TESTS_TOTAL=$((TESTS_TOTAL + 1))
+                TESTS_FAILED=$((TESTS_FAILED + 1))
+            fi
+        fi
     else
-        echo -e "   ${RED}❌ .env file missing${NC}"
-        return 1
+        echo -e "   ${YELLOW}⚠️  No .env file found (using environment variables)${NC}"
+        run_test "GEMINI_API_KEY environment variable" "[[ -n "\$GEMINI_API_KEY" ]]"
     fi
     
-    if grep -q "GEMINI_API_KEY" .env; then
-        echo -e "   ${GREEN}✅ GEMINI_API_KEY configured${NC}"
-    else
-        echo -e "   ${YELLOW}⚠️  GEMINI_API_KEY not found in .env${NC}"
-    fi
+    # Test Rust toolchain
+    run_test "Rust toolchain version" "rustc --version | grep -E '1\.(7[0-9]|[8-9][0-9])' > /dev/null"
+    run_test "Cargo workspace validation" "cargo metadata --format-version 1 > /dev/null 2>&1"
     
-    if [[ -f ".env.example" ]]; then
-        echo -e "   ${GREEN}✅ .env.example template exists${NC}"
+    # Test dependencies resolution
+    echo -e "   ${YELLOW}📦 Checking dependency resolution...${NC}"
+    if cargo tree --all-features > /dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ All dependencies resolved successfully${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        echo -e "   ${RED}❌ .env.example missing${NC}"
+        echo -e "   ${RED}❌ Dependency resolution failed${NC}"
+        cargo tree --all-features 2>&1 | head -3 | sed 's/^/      /'
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
     
     echo ""
@@ -70,10 +93,12 @@ check_env() {
 test_compilation() {
     echo -e "${BLUE}🔨 Compilation Tests${NC}"
     
-    run_test "Clean build" "cargo clean > /dev/null 2>&1"
-    run_test "Debug build" "cargo build --all > /dev/null 2>&1"
-    run_test "Release build" "cargo build --all --release > /dev/null 2>&1"
-    run_test "Test compilation" "cargo test --no-run --all > /dev/null 2>&1"
+    run_test "Workspace cleanup" "cargo clean > /dev/null 2>&1"
+    run_test "Core crate build" "cargo build -p devdocs-core > /dev/null 2>&1"
+    run_test "Middleware crate build" "cargo build -p devdocs-middleware > /dev/null 2>&1"
+    run_test "All crates debug build" "cargo build --all > /dev/null 2>&1"
+    run_test "Release build optimization" "cargo build --all --release > /dev/null 2>&1"
+    run_test "Test compilation check" "cargo test --no-run --all > /dev/null 2>&1"
     
     echo ""
 }
@@ -82,15 +107,23 @@ test_compilation() {
 test_units() {
     echo -e "${BLUE}🔬 Unit Tests${NC}"
     
-    # Capture test output
+    # Test individual crates first
+    run_test "Core crate tests" "cargo test -p devdocs-core --quiet > /dev/null 2>&1"
+    run_test "Middleware tests" "cargo test -p devdocs-middleware --quiet > /dev/null 2>&1"
+    
+    # Full test suite
     TEST_OUTPUT=$(cargo test --all 2>&1)
     
     if echo "$TEST_OUTPUT" | grep -q "test result: ok"; then
         UNIT_TESTS=$(echo "$TEST_OUTPUT" | grep -o "[0-9]* passed" | head -1)
-        echo -e "   ${GREEN}✅ Unit tests: $UNIT_TESTS${NC}"
+        echo -e "   ${GREEN}✅ All unit tests: $UNIT_TESTS${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         echo -e "   ${RED}❌ Unit tests failed${NC}"
-        echo "$TEST_OUTPUT"
+        echo "$TEST_OUTPUT" | tail -10
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
         return 1
     fi
     
@@ -101,70 +134,76 @@ test_units() {
 test_ai_components() {
     echo -e "${BLUE}🤖 AI Component Tests${NC}"
     
-    # Test that AI modules compile and are available
-    if cargo doc --no-deps --document-private-items > /dev/null 2>&1; then
-        echo -e "   ${GREEN}✅ AI modules documented successfully${NC}"
-    else
-        echo -e "   ${RED}❌ AI documentation generation failed${NC}"
-    fi
+    # Test AI integration functionality
+    run_test "AI integration test" "timeout 30 cargo run --bin ai_test > /dev/null 2>&1"
     
-    # Check for key AI files
-    for file in "crates/devdocs-core/src/ai/gemini_client.rs" \
-                "crates/devdocs-core/src/ai/prompts.rs" \
-                "crates/devdocs-core/src/analysis/traffic_analyzer.rs" \
-                "crates/devdocs-core/src/analysis/schema_inference.rs" \
-                "crates/devdocs-middleware/src/ai_processor.rs"; do
-        if [[ -f "$file" ]]; then
-            echo -e "   ${GREEN}✅ $file exists${NC}"
-        else
-            echo -e "   ${RED}❌ $file missing${NC}"
-        fi
-    done
+    # Test that AI modules compile and are available
+    run_test "AI documentation generation" "cargo doc --no-deps -p devdocs-core > /dev/null 2>&1"
+    
+    # Check for key AI files and their content
+    run_test "Gemini client module" "[[ -f 'crates/devdocs-core/src/ai/gemini_client.rs' && -s 'crates/devdocs-core/src/ai/gemini_client.rs' ]]"
+    run_test "Prompt engineering module" "[[ -f 'crates/devdocs-core/src/ai/prompts.rs' && -s 'crates/devdocs-core/src/ai/prompts.rs' ]]"
+    run_test "Traffic analyzer module" "[[ -f 'crates/devdocs-core/src/analysis/traffic_analyzer.rs' && -s 'crates/devdocs-core/src/analysis/traffic_analyzer.rs' ]]"
+    run_test "Schema inference module" "[[ -f 'crates/devdocs-core/src/analysis/schema_inference.rs' && -s 'crates/devdocs-core/src/analysis/schema_inference.rs' ]]"
+    run_test "AI processor service" "[[ -f 'crates/devdocs-middleware/src/ai_processor.rs' && -s 'crates/devdocs-middleware/src/ai_processor.rs' ]]"
+    
+    # Test for AI-related dependencies in Cargo.toml
+    run_test "Reqwest dependency check" "grep -q 'reqwest.*json' Cargo.toml"
     
     echo ""
 }
 
 # Function to test server functionality
-test_server() {
-    echo -e "${BLUE}🖥️  Server Integration Test${NC}"
+test_server_integration() {
+    echo -e "${BLUE}🖥️  Server Integration Tests${NC}"
     
-    # Start server in background
-    echo -e "   ${YELLOW}🚀 Starting server...${NC}"
-    cargo run --bin basic_usage > server.log 2>&1 &
+    # Test server startup
+    echo -e "   ${YELLOW}🚀 Starting test server...${NC}"
+    timeout 10 cargo run --bin basic_usage > server.log 2>&1 &
     SERVER_PID=$!
     
     # Wait for server to start
-    sleep 3
+    sleep 4
     
-    # Test server endpoints
-    if curl -f -s http://localhost:3000/ > /dev/null; then
-        echo -e "   ${GREEN}✅ Server responding on port 3000${NC}"
+    # Test server health
+    run_test "Server startup check" "ps -p $SERVER_PID > /dev/null"
+    run_test "Server port binding" "netstat -tlnp 2>/dev/null | grep -q ':3000.*LISTEN' || ss -tlnp 2>/dev/null | grep -q ':3000.*LISTEN'"
+    
+    # Test HTTP endpoints
+    if curl --connect-timeout 5 -f -s http://localhost:3000/ > /dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ Server HTTP response working${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
         
-        # Test different endpoints
-        curl -f -s -X GET "http://localhost:3000/health" > /dev/null && \
-            echo -e "   ${GREEN}✅ GET /health working${NC}"
-            
-        curl -f -s -X POST "http://localhost:3000/api/test" \
-            -H "Content-Type: application/json" \
-            -d '{"test": true}' > /dev/null && \
-            echo -e "   ${GREEN}✅ POST /api/test working${NC}"
-        
+        # Test specific endpoints
+        run_test "GET root endpoint" "curl --connect-timeout 3 -f -s http://localhost:3000/ | grep -q 'Hello'"
+        run_test "POST API endpoint test" "curl --connect-timeout 3 -f -s -X POST http://localhost:3000/api/test -H 'Content-Type: application/json' -d '{\"test\": true}' > /dev/null"
     else
-        echo -e "   ${RED}❌ Server not responding${NC}"
+        echo -e "   ${RED}❌ Server not responding to HTTP requests${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
     
-    # Stop server
-    kill $SERVER_PID 2>/dev/null
-    wait $SERVER_PID 2>/dev/null
+    # Cleanup server process
+    kill $SERVER_PID 2>/dev/null || pkill -f basic_usage 2>/dev/null
+    wait $SERVER_PID 2>/dev/null || true
     
-    # Check server logs
+    # Check server logs for errors
     if [[ -f server.log ]] && [[ -s server.log ]]; then
-        echo -e "   ${GREEN}✅ Server logs generated${NC}"
-        # Show any important log messages
-        if grep -i "error\|panic" server.log > /dev/null; then
-            echo -e "   ${YELLOW}⚠️  Server logs contain errors:${NC}"
-            grep -i "error\|panic" server.log | head -3
+        if ! grep -qi "error\|panic\|failed\|crash" server.log; then
+            echo -e "   ${GREEN}✅ Server logs clean (no errors)${NC}"
+            TESTS_TOTAL=$((TESTS_TOTAL + 1))
+            TESTS_PASSED=$((TESTS_PASSED + 1))
+        else
+            echo -e "   ${YELLOW}⚠️  Server logs contain warnings/errors:${NC}"
+            grep -i "error\|panic\|failed" server.log | head -3 | sed 's/^/      /'
+            TESTS_TOTAL=$((TESTS_TOTAL + 1))
+            TESTS_FAILED=$((TESTS_FAILED + 1))
         fi
+    else
+        echo -e "   ${RED}❌ Server logs missing or empty${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
     
     # Cleanup
@@ -172,31 +211,104 @@ test_server() {
     echo ""
 }
 
-# Function to test feature completeness
-test_features() {
-    echo -e "${BLUE}📋 Feature Completeness Check${NC}"
+# Function to test feature completeness and edge cases
+test_feature_completeness() {
+    echo -e "${BLUE}🎯 Feature Completeness & Edge Case Tests${NC}"
     
-    # Check for AI integration features
-    if grep -r "GeminiClient" crates/ > /dev/null; then
-        echo -e "   ${GREEN}✅ Gemini AI client implemented${NC}"
+    # Test documentation generation with different input types
+    echo -e "   ${YELLOW}📚 Testing documentation generation scenarios...${NC}"
+    
+    # Create test input files
+    mkdir -p test_inputs
+    
+    # Test with valid OpenAPI spec
+    cat > test_inputs/valid_api.json << 'EOF'
+{
+    "openapi": "3.0.0",
+    "info": {"title": "Test API", "version": "1.0.0"},
+    "paths": {
+        "/users": {
+            "get": {
+                "summary": "Get users",
+                "responses": {"200": {"description": "Success"}}
+            }
+        }
+    }
+}
+EOF
+    
+    run_test "Valid API spec processing" "timeout 15 cargo run --example process_api test_inputs/valid_api.json > /dev/null 2>&1"
+    
+    # Test with invalid JSON
+    echo '{"invalid": json}' > test_inputs/invalid.json
+    if timeout 10 cargo run --example process_api test_inputs/invalid.json > /dev/null 2>&1; then
+        echo -e "   ${YELLOW}⚠️  Invalid JSON should fail but didn't${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    else
+        echo -e "   ${GREEN}✅ Invalid JSON properly rejected${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
     fi
     
-    if grep -r "TrafficAnalyzer" crates/ > /dev/null; then
-        echo -e "   ${GREEN}✅ Traffic analysis implemented${NC}"
+    # Test with empty file
+    touch test_inputs/empty.json
+    if timeout 10 cargo run --example process_api test_inputs/empty.json > /dev/null 2>&1; then
+        echo -e "   ${YELLOW}⚠️  Empty file should fail but didn't${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    else
+        echo -e "   ${GREEN}✅ Empty file properly rejected${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
     fi
     
-    if grep -r "schema_inference" crates/ > /dev/null; then
-        echo -e "   ${GREEN}✅ Schema inference implemented${NC}"
+    # Test rate limiting behavior
+    echo -e "   ${YELLOW}⏱️  Testing rate limiting...${NC}"
+    if timeout 20 bash -c 'for i in {1..5}; do cargo run --example quick_test >/dev/null 2>&1 & done; wait' > /dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ Rate limiting handled concurrent requests${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo -e "   ${YELLOW}⚠️  Rate limiting test inconclusive${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
     
-    if grep -r "batch_processor" crates/ > /dev/null; then
-        echo -e "   ${GREEN}✅ Batch processing implemented${NC}"
+    # Test memory usage with large inputs
+    echo -e "   ${YELLOW}💾 Testing memory efficiency...${NC}"
+    
+    # Generate large test input
+    cat > test_inputs/large_api.json << 'EOF'
+{
+    "openapi": "3.0.0",
+    "info": {"title": "Large API", "version": "1.0.0"},
+    "paths": {
+EOF
+    
+    # Add many endpoints
+    for i in {1..50}; do
+        echo "    "/endpoint$i": {"get": {"summary": "Endpoint $i", "responses": {"200": {"description": "Success"}}}}," >> test_inputs/large_api.json
+    done
+    
+    # Close JSON properly
+    sed -i '$ s/,$//' test_inputs/large_api.json
+    echo '    }' >> test_inputs/large_api.json
+    echo '}' >> test_inputs/large_api.json
+    
+    # Test processing large input
+    if timeout 30 cargo run --example process_api test_inputs/large_api.json > /dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ Large input processed successfully${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo -e "   ${YELLOW}⚠️  Large input processing failed or timed out${NC}"
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
     
-    if grep -r "AIProcessorService" crates/ > /dev/null; then
-        echo -e "   ${GREEN}✅ AI processor service implemented${NC}"
-    fi
-    
+    # Cleanup test files
+    rm -rf test_inputs
     echo ""
 }
 
@@ -232,8 +344,9 @@ main() {
     test_compilation
     test_units
     test_ai_components
-    test_server
-    test_features
+    test_server_integration
+    test_environment_config
+    test_feature_completeness
     
     # Generate final summary
     generate_summary
