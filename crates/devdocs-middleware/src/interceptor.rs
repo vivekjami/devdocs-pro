@@ -28,8 +28,6 @@ impl<S> HttpInterceptor<S> {
 impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for HttpInterceptor<S>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>>,
-    ReqBody: Default,
-    ResBody: Default,
 {
     type Response = Response<ResBody>;
     type Error = S::Error;
@@ -103,7 +101,6 @@ pin_project_lite::pin_project! {
 impl<F, ResBody, E> std::future::Future for InterceptorFuture<F>
 where
     F: std::future::Future<Output = Result<Response<ResBody>, E>>,
-    ResBody: Default,
 {
     type Output = Result<Response<ResBody>, E>;
 

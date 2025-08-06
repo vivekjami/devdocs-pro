@@ -12,5 +12,7 @@ devdocs-middleware = { path = "../crates/devdocs-middleware" }
 devdocs-core = { path = "../crates/devdocs-core" }
 tokio = { workspace = true }
 hyper = { workspace = true }
+hyper-util = { version = "0.1", features = ["tokio", "server"] }
+http-body-util = "0.1"
 tower = { workspace = true, features = ["util"] }
 tracing-subscriber = { workspace = true }

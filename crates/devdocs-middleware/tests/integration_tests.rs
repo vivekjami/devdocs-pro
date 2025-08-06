@@ -1,13 +1,15 @@
 use devdocs_middleware::DevDocsMiddleware;
 use devdocs_core::Config;
-use hyper::{Body, Request, Response, StatusCode};
+use hyper::{Request, Response, StatusCode};
+use hyper::body::Bytes;
 use tower::{ServiceBuilder, service_fn, ServiceExt};
 use std::convert::Infallible;
+use http_body_util::Full;
 
-async fn dummy_service(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
+async fn dummy_service<B>(_req: Request<B>) -> Result<Response<Full<Bytes>>, Infallible> {
     Ok(Response::builder()
         .status(StatusCode::OK)
-        .body(Body::from("Hello, World!"))
+        .body(Full::new(Bytes::from("Hello, World!")))
         .unwrap())
 }
 
@@ -30,7 +32,7 @@ async fn test_middleware_integration() {
     let request = Request::builder()
         .method("GET")
         .uri("/api/users/123?page=1")
-        .body(Body::empty())
+        .body(Full::new(Bytes::new()))
         .unwrap();
 
     // Process request in background
@@ -62,7 +64,7 @@ async fn test_path_exclusion() {
     let request = Request::builder()
         .method("GET")
         .uri("/health")
-        .body(Body::empty())
+        .body(Full::new(Bytes::new()))
         .unwrap();
 
     let response = service.oneshot(request).await.unwrap();

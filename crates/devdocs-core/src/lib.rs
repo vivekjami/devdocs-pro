@@ -7,7 +7,9 @@ pub mod config;
 pub mod models;
 pub mod utils;
 pub mod errors;
+pub mod body_capture;
 
 pub use config::Config;
 pub use models::*;
 pub use errors::DevDocsError;
+pub use body_capture::*;

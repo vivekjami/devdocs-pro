@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
+use crate::body_capture::CapturedBody;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpRequest {
@@ -10,7 +11,7 @@ pub struct HttpRequest {
     pub path: String,
     pub query_params: HashMap<String, String>,
     pub headers: HashMap<String, String>,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<CapturedBody>,
     pub timestamp: DateTime<Utc>,
     pub correlation_id: String,
 }
@@ -21,7 +22,7 @@ pub struct HttpResponse {
     pub request_id: Uuid,
     pub status_code: u16,
     pub headers: HashMap<String, String>,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<CapturedBody>,
     pub timestamp: DateTime<Utc>,
     pub processing_time_ms: u64,
 }

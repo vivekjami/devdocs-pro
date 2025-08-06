@@ -1,13 +1,16 @@
 use devdocs_middleware::DevDocsMiddleware;
 use devdocs_core::Config;
-use hyper::{Body, Request, Response, Server};
-use hyper::service::make_service_fn;
-use tower::ServiceBuilder;
-use std::convert::Infallible;
+use hyper::{body::Incoming, Request, Response, Result as HyperResult};
+use hyper::body::Bytes;
+use hyper::service::service_fn;
+use hyper_util::rt::{TokioIo, TokioExecutor};
+use hyper_util::server::conn::auto::Builder as ConnBuilder;
 use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use http_body_util::Full;
 
-async fn hello_world(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    Ok(Response::new(Body::from("Hello, World!")))
+async fn hello_world(_req: Request<Incoming>) -> HyperResult<Response<Full<Bytes>>> {
+    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
 }
 
 #[tokio::main]
@@ -15,33 +18,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt::init();
 
     let config = Config::from_env()?;
-    let (layer, mut middleware) = DevDocsMiddleware::new(config);
+    let (_layer, mut middleware) = DevDocsMiddleware::new(config);
 
     // Start middleware processing in background
     tokio::spawn(async move {
         middleware.start_processing().await;
     });
 
-    // Create service with middleware
-    let make_svc = make_service_fn(|_conn| {
-        let layer = layer.clone();
-        async move {
-            Ok::<_, Infallible>(
-                ServiceBuilder::new()
-                    .layer(layer)
-                    .service_fn(hello_world)
-            )
-        }
-    });
-
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    let server = Server::bind(&addr).serve(make_svc);
-
+    let listener = TcpListener::bind(addr).await?;
     println!("Server running on http://{}", addr);
-    
-    if let Err(e) = server.await {
-        eprintln!("Server error: {}", e);
-    }
 
-    Ok(())
+    // For this example, let's use a simpler approach without body capture initially
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let io = TokioIo::new(stream);
+        
+        tokio::task::spawn(async move {
+            let conn = ConnBuilder::new(TokioExecutor::new());
+            
+            if let Err(err) = conn.serve_connection_with_upgrades(io, service_fn(hello_world)).await {
+                eprintln!("Error serving connection: {:?}", err);
+            }
+        });
+    }
 }
