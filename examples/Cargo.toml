@@ -7,6 +7,10 @@ edition = "2021"
 name = "basic_usage"
 path = "basic_usage.rs"
 
+[[bin]]
+name = "ai_test"
+path = "ai_test.rs"
+
 [dependencies]
 devdocs-middleware = { path = "../crates/devdocs-middleware" }
 devdocs-core = { path = "../crates/devdocs-core" }
@@ -16,3 +20,6 @@ hyper-util = { version = "0.1", features = ["tokio", "server"] }
 http-body-util = "0.1"
 tower = { workspace = true, features = ["util"] }
 tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }

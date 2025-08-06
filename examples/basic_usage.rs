@@ -1,13 +1,13 @@
-use devdocs_middleware::DevDocsMiddleware;
 use devdocs_core::Config;
-use hyper::{body::Incoming, Request, Response, Result as HyperResult};
+use devdocs_middleware::DevDocsMiddleware;
+use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::service::service_fn;
-use hyper_util::rt::{TokioIo, TokioExecutor};
+use hyper::{body::Incoming, Request, Response, Result as HyperResult};
+use hyper_util::rt::{TokioExecutor, TokioIo};
 use hyper_util::server::conn::auto::Builder as ConnBuilder;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
-use http_body_util::Full;
 
 async fn hello_world(_req: Request<Incoming>) -> HyperResult<Response<Full<Bytes>>> {
     Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
@@ -34,11 +34,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     loop {
         let (stream, _) = listener.accept().await?;
         let io = TokioIo::new(stream);
-        
+
         tokio::task::spawn(async move {
             let conn = ConnBuilder::new(TokioExecutor::new());
-            
-            if let Err(err) = conn.serve_connection_with_upgrades(io, service_fn(hello_world)).await {
+
+            if let Err(err) = conn
+                .serve_connection_with_upgrades(io, service_fn(hello_world))
+                .await
+            {
                 eprintln!("Error serving connection: {:?}", err);
             }
         });

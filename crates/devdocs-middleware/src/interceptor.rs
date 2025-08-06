@@ -1,12 +1,12 @@
+use chrono::Utc;
 use devdocs_core::{Config, HttpRequest, HttpResponse, TrafficSample};
 use hyper::{Request, Response};
-use std::task::{Context, Poll};
-use tower::{Layer, Service};
-use uuid::Uuid;
-use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 use tokio::sync::mpsc;
+use tower::{Layer, Service};
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct HttpInterceptor<S> {
@@ -17,11 +17,15 @@ pub struct HttpInterceptor<S> {
 
 impl<S> HttpInterceptor<S> {
     pub fn new(
-        inner: S, 
+        inner: S,
         config: Arc<Config>,
-        sample_sender: mpsc::UnboundedSender<TrafficSample>
+        sample_sender: mpsc::UnboundedSender<TrafficSample>,
     ) -> Self {
-        Self { inner, config, sample_sender }
+        Self {
+            inner,
+            config,
+            sample_sender,
+        }
     }
 }
 
@@ -41,17 +45,22 @@ where
         let start_time = std::time::Instant::now();
         let should_sample = self.config.should_sample();
         let correlation_id = Uuid::new_v4().to_string();
-        
+
         // Extract request metadata before moving the request
         let method = req.method().to_string();
         let path = req.uri().path().to_string();
         let query = req.uri().query().unwrap_or("").to_string();
-        
+
         // Check if path should be excluded
-        let should_exclude = self.config.excluded_paths.iter()
+        let should_exclude = self
+            .config
+            .excluded_paths
+            .iter()
             .any(|excluded| path.starts_with(excluded));
-            
-        let headers = req.headers().iter()
+
+        let headers = req
+            .headers()
+            .iter()
             .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
             .collect::<HashMap<_, _>>();
 
@@ -106,11 +115,11 @@ where
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        
+
         match this.future.poll(cx) {
             Poll::Ready(result) => {
                 let processing_time = this.start_time.elapsed();
-                
+
                 if *this.should_sample {
                     match result {
                         Ok(ref response) => {
@@ -127,7 +136,9 @@ where
                             };
 
                             // Create HTTP response record
-                            let response_headers: HashMap<String, String> = response.headers().iter()
+                            let response_headers: HashMap<String, String> = response
+                                .headers()
+                                .iter()
                                 .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
                                 .collect();
 
@@ -145,7 +156,9 @@ where
                             let sample = TrafficSample {
                                 request: http_request,
                                 response: Some(http_response),
-                                endpoint_pattern: devdocs_core::utils::extract_endpoint_pattern(&this.path),
+                                endpoint_pattern: devdocs_core::utils::extract_endpoint_pattern(
+                                    &this.path,
+                                ),
                                 ai_analysis: None, // Will be populated by AI processor
                             };
 
@@ -155,11 +168,14 @@ where
                             }
                         }
                         Err(_) => {
-                            tracing::error!("Request failed for correlation_id: {}", this.correlation_id);
+                            tracing::error!(
+                                "Request failed for correlation_id: {}",
+                                this.correlation_id
+                            );
                         }
                     }
                 }
-                
+
                 Poll::Ready(result)
             }
             Poll::Pending => Poll::Pending,

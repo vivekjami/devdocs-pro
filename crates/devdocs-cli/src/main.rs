@@ -1,5 +1,5 @@
 //! DevDocs Pro CLI
-//! 
+//!
 //! Command-line interface for DevDocs Pro
 
 use clap::{Parser, Subcommand};

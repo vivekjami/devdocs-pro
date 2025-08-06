@@ -1,16 +1,16 @@
 //! Body capture system for HTTP requests and responses
-//! 
+//!
 //! This module provides streaming body capture with intelligent content-type
 //! detection, compression handling, and memory management for large payloads.
 
+use crate::errors::{DevDocsError, Result};
 use bytes::Bytes;
+use http_body_util::BodyExt;
 use hyper::{body::Incoming, HeaderMap};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
-use serde::{Deserialize, Serialize};
-use crate::errors::{DevDocsError, Result};
-use http_body_util::BodyExt;
 
 /// Maximum size for in-memory body storage
 const MAX_MEMORY_SIZE: usize = 10 * 1024 * 1024; // 10MB
@@ -36,17 +36,20 @@ pub enum CompressionType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ContentPriority {
-    High,    // JSON, XML - critical for API docs
-    Medium,  // Form data, text, CSV
-    Low,     // Binary, images
-    Skip,    // Videos, large archives
+    High,   // JSON, XML - critical for API docs
+    Medium, // Form data, text, CSV
+    Low,    // Binary, images
+    Skip,   // Videos, large archives
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BodyStorage {
     Memory(Vec<u8>),
     File(PathBuf),
-    Truncated { original_size: usize, captured: Vec<u8> },
+    Truncated {
+        original_size: usize,
+        captured: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,7 +124,10 @@ impl BodyCapture {
 
         // Skip low-priority content based on configuration
         if matches!(priority, ContentPriority::Skip) {
-            tracing::debug!("Skipping body capture for low-priority content: {:?}", content_type);
+            tracing::debug!(
+                "Skipping body capture for low-priority content: {:?}",
+                content_type
+            );
             return Ok(None);
         }
 
@@ -158,7 +164,7 @@ impl BodyCapture {
                 original_size,
                 self.config.max_size
             );
-            
+
             let truncated = body_bytes.slice(..self.config.max_size.min(body_bytes.len()));
             return Ok(Some(CapturedBody {
                 content_type,
@@ -173,26 +179,25 @@ impl BodyCapture {
         }
 
         // Decompress if needed and enabled
-        let processed_bytes = if self.config.enable_decompression 
-            && !matches!(compression, CompressionType::None) 
-        {
-            match decompress_body(body_bytes.clone(), &compression).await {
-                Ok(decompressed) => {
-                    tracing::debug!(
-                        "Decompressed body from {} to {} bytes",
-                        body_bytes.len(),
-                        decompressed.len()
-                    );
-                    decompressed
+        let processed_bytes =
+            if self.config.enable_decompression && !matches!(compression, CompressionType::None) {
+                match decompress_body(body_bytes.clone(), &compression).await {
+                    Ok(decompressed) => {
+                        tracing::debug!(
+                            "Decompressed body from {} to {} bytes",
+                            body_bytes.len(),
+                            decompressed.len()
+                        );
+                        decompressed
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to decompress body: {}, using original", e);
+                        body_bytes
+                    }
                 }
-                Err(e) => {
-                    tracing::warn!("Failed to decompress body: {}, using original", e);
-                    body_bytes
-                }
-            }
-        } else {
-            body_bytes
-        };
+            } else {
+                body_bytes
+            };
 
         // Decide storage strategy based on size
         let storage = if processed_bytes.len() <= self.config.max_memory_size {
@@ -215,7 +220,8 @@ impl BodyCapture {
     /// Store large body data to temporary file
     async fn store_large_body(&self, data: &Bytes, body_type: &str) -> Result<PathBuf> {
         // Ensure temp directory exists
-        fs::create_dir_all(&self.config.temp_dir).await
+        fs::create_dir_all(&self.config.temp_dir)
+            .await
             .map_err(|e| DevDocsError::Io(e))?;
 
         // Generate unique filename
@@ -228,16 +234,21 @@ impl BodyCapture {
         let file_path = self.config.temp_dir.join(filename);
 
         // Write data to file
-        let mut file = fs::File::create(&file_path).await
-            .map_err(|e| DevDocsError::Io(e))?;
-        
-        file.write_all(data).await
-            .map_err(|e| DevDocsError::Io(e))?;
-        
-        file.sync_all().await
+        let mut file = fs::File::create(&file_path)
+            .await
             .map_err(|e| DevDocsError::Io(e))?;
 
-        tracing::debug!("Stored large body ({} bytes) to file: {:?}", data.len(), file_path);
+        file.write_all(data)
+            .await
+            .map_err(|e| DevDocsError::Io(e))?;
+
+        file.sync_all().await.map_err(|e| DevDocsError::Io(e))?;
+
+        tracing::debug!(
+            "Stored large body ({} bytes) to file: {:?}",
+            data.len(),
+            file_path
+        );
 
         Ok(file_path)
     }
@@ -257,13 +268,13 @@ pub fn analyze_content_priority(content_type: &Option<String>) -> ContentPriorit
     match content_type {
         Some(ct) => {
             let ct = ct.to_lowercase();
-            
+
             // High priority: API-relevant content
-            if ct.contains("application/json") 
-                || ct.contains("application/xml") 
+            if ct.contains("application/json")
+                || ct.contains("application/xml")
                 || ct.contains("text/xml")
                 || ct.contains("application/hal+json")
-                || ct.contains("application/vnd.api+json") 
+                || ct.contains("application/vnd.api+json")
             {
                 ContentPriority::High
             }
@@ -291,8 +302,7 @@ pub fn analyze_content_priority(content_type: &Option<String>) -> ContentPriorit
                 || ct.contains("application/x-7z")
             {
                 ContentPriority::Skip
-            }
-            else {
+            } else {
                 // Default to medium for unknown types
                 ContentPriority::Medium
             }
@@ -306,7 +316,7 @@ pub fn detect_compression(headers: &HeaderMap) -> CompressionType {
     if let Some(encoding) = headers.get(hyper::header::CONTENT_ENCODING) {
         if let Ok(encoding_str) = encoding.to_str() {
             let encoding_lower = encoding_str.to_lowercase();
-            
+
             if encoding_lower.contains("gzip") {
                 return CompressionType::Gzip;
             } else if encoding_lower.contains("deflate") {
@@ -316,27 +326,29 @@ pub fn detect_compression(headers: &HeaderMap) -> CompressionType {
             }
         }
     }
-    
+
     CompressionType::None
 }
 
 /// Decompress body based on compression type
 pub async fn decompress_body(data: Bytes, compression: &CompressionType) -> Result<Bytes> {
     use std::io::Read;
-    
+
     match compression {
         CompressionType::Gzip => {
             let mut decoder = flate2::read::GzDecoder::new(data.as_ref());
             let mut decompressed = Vec::new();
-            decoder.read_to_end(&mut decompressed)
-                .map_err(|e| DevDocsError::InvalidRequest(format!("Gzip decompression failed: {}", e)))?;
+            decoder.read_to_end(&mut decompressed).map_err(|e| {
+                DevDocsError::InvalidRequest(format!("Gzip decompression failed: {}", e))
+            })?;
             Ok(Bytes::from(decompressed))
         }
         CompressionType::Deflate => {
             let mut decoder = flate2::read::DeflateDecoder::new(data.as_ref());
             let mut decompressed = Vec::new();
-            decoder.read_to_end(&mut decompressed)
-                .map_err(|e| DevDocsError::InvalidRequest(format!("Deflate decompression failed: {}", e)))?;
+            decoder.read_to_end(&mut decompressed).map_err(|e| {
+                DevDocsError::InvalidRequest(format!("Deflate decompression failed: {}", e))
+            })?;
             Ok(Bytes::from(decompressed))
         }
         CompressionType::Brotli => {
@@ -354,8 +366,7 @@ impl CapturedBody {
         match &self.storage {
             BodyStorage::Memory(data) => Ok(Bytes::from(data.clone())),
             BodyStorage::File(path) => {
-                let data = fs::read(path).await
-                    .map_err(|e| DevDocsError::Io(e))?;
+                let data = fs::read(path).await.map_err(|e| DevDocsError::Io(e))?;
                 Ok(Bytes::from(data))
             }
             BodyStorage::Truncated { captured, .. } => Ok(Bytes::from(captured.clone())),
@@ -396,7 +407,7 @@ mod tests {
             analyze_content_priority(&Some("application/json".to_string())),
             ContentPriority::High
         ));
-        
+
         assert!(matches!(
             analyze_content_priority(&Some("application/xml".to_string())),
             ContentPriority::High
@@ -407,7 +418,7 @@ mod tests {
             analyze_content_priority(&Some("application/x-www-form-urlencoded".to_string())),
             ContentPriority::Medium
         ));
-        
+
         assert!(matches!(
             analyze_content_priority(&Some("text/plain".to_string())),
             ContentPriority::Medium
@@ -423,17 +434,26 @@ mod tests {
     #[test]
     fn test_detect_compression() {
         let mut headers = HeaderMap::new();
-        
+
         // Test gzip detection
         headers.insert(CONTENT_ENCODING, "gzip".parse().unwrap());
-        assert!(matches!(detect_compression(&headers), CompressionType::Gzip));
-        
+        assert!(matches!(
+            detect_compression(&headers),
+            CompressionType::Gzip
+        ));
+
         // Test deflate detection
         headers.insert(CONTENT_ENCODING, "deflate".parse().unwrap());
-        assert!(matches!(detect_compression(&headers), CompressionType::Deflate));
-        
+        assert!(matches!(
+            detect_compression(&headers),
+            CompressionType::Deflate
+        ));
+
         // Test no compression
         headers.remove(CONTENT_ENCODING);
-        assert!(matches!(detect_compression(&headers), CompressionType::None));
+        assert!(matches!(
+            detect_compression(&headers),
+            CompressionType::None
+        ));
     }
 }

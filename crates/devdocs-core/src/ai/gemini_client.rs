@@ -1,9 +1,9 @@
 //! Google Gemini AI client for generating API documentation
 
+use crate::errors::{DevDocsError, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use crate::errors::{DevDocsError, Result};
 
 #[derive(Debug, Clone)]
 pub struct GeminiClient {
@@ -30,15 +30,19 @@ impl GeminiClient {
     pub async fn generate_content(&mut self, prompt: &GeminiPrompt) -> Result<GeminiResponse> {
         // Rate limit enforcement
         self.enforce_rate_limit().await;
-        
+
         // Send request to Gemini API
-        let url = format!("{}/{}:generateContent?key={}", 
-            self.base_url, self.model, self.api_key);
-        
+        let url = format!(
+            "{}/{}:generateContent?key={}",
+            self.base_url, self.model, self.api_key
+        );
+
         let request_body = GeminiRequest {
             contents: vec![Content {
                 role: "user".to_string(),
-                parts: vec![Part { text: prompt.content.clone() }],
+                parts: vec![Part {
+                    text: prompt.content.clone(),
+                }],
             }],
             generation_config: GenerationConfig {
                 temperature: Some(prompt.temperature),
@@ -47,36 +51,39 @@ impl GeminiClient {
                 top_k: Some(40),
             },
         };
-        
+
         // Log request (without API key)
         tracing::debug!("Sending request to Gemini API: {:?}", prompt.prompt_type);
-        
+
         // Send request and process response
-        let response = self.client.post(&url)
+        let response = self
+            .client
+            .post(&url)
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| DevDocsError::Network(e.into()))?;
-            
+            .map_err(DevDocsError::Network)?;
+
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             return Err(DevDocsError::InvalidRequest(format!(
-                "Gemini API error {}: {}", status, text
+                "Gemini API error {status}: {text}"
             )));
         }
-            
-        let gemini_response = response
-            .json::<GeminiResponse>()
-            .await
-            .map_err(|e| DevDocsError::InvalidRequest(format!("Failed to parse Gemini response: {}", e)))?;
-            
-        tracing::debug!("Received Gemini response with {} candidates", 
-            gemini_response.candidates.len());
-            
+
+        let gemini_response = response.json::<GeminiResponse>().await.map_err(|e| {
+            DevDocsError::InvalidRequest(format!("Failed to parse Gemini response: {e}"))
+        })?;
+
+        tracing::debug!(
+            "Received Gemini response with {} candidates",
+            gemini_response.candidates.len()
+        );
+
         Ok(gemini_response)
     }
-    
+
     async fn enforce_rate_limit(&mut self) {
         if let Some(last_time) = self.last_request {
             let elapsed = last_time.elapsed();

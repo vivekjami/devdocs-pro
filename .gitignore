@@ -116,3 +116,5 @@ tramp
 
 # asdf
 .tool-versions
+
+.env

@@ -1,8 +1,8 @@
+use crate::body_capture::CapturedBody;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use crate::body_capture::CapturedBody;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpRequest {

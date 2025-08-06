@@ -3,5 +3,5 @@
 pub mod schema_inference;
 pub mod traffic_analyzer;
 
-pub use schema_inference::{SchemaInferrer, JsonSchema, PropertySchema};
-pub use traffic_analyzer::{TrafficAnalyzer, EndpointAnalysis, EndpointDocumentation};
+pub use schema_inference::{JsonSchema, PropertySchema, SchemaInferrer};
+pub use traffic_analyzer::{EndpointAnalysis, EndpointDocumentation, TrafficAnalyzer};

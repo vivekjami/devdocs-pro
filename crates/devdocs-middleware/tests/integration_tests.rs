@@ -1,10 +1,10 @@
-use devdocs_middleware::DevDocsMiddleware;
 use devdocs_core::Config;
-use hyper::{Request, Response, StatusCode};
-use hyper::body::Bytes;
-use tower::{ServiceBuilder, service_fn, ServiceExt};
-use std::convert::Infallible;
+use devdocs_middleware::DevDocsMiddleware;
 use http_body_util::Full;
+use hyper::body::Bytes;
+use hyper::{Request, Response, StatusCode};
+use std::convert::Infallible;
+use tower::{service_fn, ServiceBuilder, ServiceExt};
 
 async fn dummy_service<B>(_req: Request<B>) -> Result<Response<Full<Bytes>>, Infallible> {
     Ok(Response::builder()
@@ -22,7 +22,7 @@ async fn test_middleware_integration() {
     };
 
     let (layer, mut middleware) = DevDocsMiddleware::new(config);
-    
+
     // Create service with middleware
     let service = ServiceBuilder::new()
         .layer(layer)
@@ -54,7 +54,7 @@ async fn test_path_exclusion() {
     };
 
     let (layer, _middleware) = DevDocsMiddleware::new(config);
-    
+
     // Create service with middleware
     let service = ServiceBuilder::new()
         .layer(layer)

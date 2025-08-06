@@ -1,25 +1,21 @@
 //! Prompt engineering framework for API documentation generation
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use crate::models::TrafficSample;
 use crate::ai::gemini_client::{GeminiPrompt, PromptType};
+use crate::models::TrafficSample;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 impl GeminiPrompt {
-    pub fn for_endpoint_analysis(
-        endpoint: &str, 
-        method: &str, 
-        samples: &[TrafficSample]
-    ) -> Self {
+    pub fn for_endpoint_analysis(endpoint: &str, method: &str, samples: &[TrafficSample]) -> Self {
         // Extract request examples
         let request_examples = Self::extract_request_examples(samples, 2);
-        
+
         // Extract response examples
         let response_examples = Self::extract_response_examples(samples, 2);
-        
+
         // Analyze status codes
         let status_codes = Self::analyze_status_codes(samples);
-        
+
         // Build rich context prompt
         let content = format!(
             "You are an expert API documentation writer. Analyze this API endpoint based on real production traffic data:\n\n\
@@ -57,22 +53,23 @@ impl GeminiPrompt {
              ```",
             method, endpoint, samples.len(), request_examples, response_examples, status_codes
         );
-        
+
         Self {
             prompt_type: PromptType::EndpointAnalysis,
             content,
-            temperature: 0.2,  // Low temperature for consistent documentation
+            temperature: 0.2, // Low temperature for consistent documentation
             max_tokens: 2048,
         }
     }
-    
+
     pub fn for_schema_inference(json_samples: &[String]) -> Self {
-        let samples_text = json_samples.iter()
+        let samples_text = json_samples
+            .iter()
             .enumerate()
             .map(|(i, sample)| format!("Sample {}:\n{}\n", i + 1, sample))
             .collect::<Vec<_>>()
             .join("\n");
-            
+
         let content = format!(
             "Analyze these JSON samples and generate a comprehensive JSON schema:\n\n\
              {}\n\n\
@@ -85,7 +82,7 @@ impl GeminiPrompt {
              Format your response as a valid JSON Schema object.",
             samples_text
         );
-        
+
         Self {
             prompt_type: PromptType::SchemaInference,
             content,
@@ -93,21 +90,26 @@ impl GeminiPrompt {
             max_tokens: 1500,
         }
     }
-    
+
     pub fn for_batch_analysis(endpoints: &[EndpointSummary]) -> Self {
-        let endpoints_text = endpoints.iter()
-            .map(|ep| format!(
-                "ENDPOINT: {} {}\n\
+        let endpoints_text = endpoints
+            .iter()
+            .map(|ep| {
+                format!(
+                    "ENDPOINT: {} {}\n\
                  Samples: {}\n\
                  Request Schema: {}\n\
                  Response Examples: {}\n",
-                ep.method, ep.path, ep.sample_count, 
-                ep.request_schema.as_deref().unwrap_or("None"),
-                ep.response_examples.join("; ")
-            ))
+                    ep.method,
+                    ep.path,
+                    ep.sample_count,
+                    ep.request_schema.as_deref().unwrap_or("None"),
+                    ep.response_examples.join("; ")
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n---\n");
-            
+
         let content = format!(
             "Analyze these {} API endpoints and generate documentation for each:\n\n\
              {}\n\n\
@@ -117,9 +119,10 @@ impl GeminiPrompt {
              3. Response format description\n\
              4. Common error scenarios\n\n\
              Format as JSON array with one object per endpoint.",
-            endpoints.len(), endpoints_text
+            endpoints.len(),
+            endpoints_text
         );
-        
+
         Self {
             prompt_type: PromptType::BatchEndpointAnalysis,
             content,
@@ -127,16 +130,20 @@ impl GeminiPrompt {
             max_tokens: 4096,
         }
     }
-    
+
     fn extract_request_examples(samples: &[TrafficSample], limit: usize) -> String {
-        let examples: Vec<String> = samples.iter()
+        let examples: Vec<String> = samples
+            .iter()
             .filter_map(|sample| {
                 sample.request.body.as_ref().and_then(|body| {
                     if body.priority == crate::body_capture::ContentPriority::High {
                         // Try to get JSON body text
                         Some(format!(
                             "Headers: {}\nBody: (captured {} bytes)",
-                            sample.request.headers.iter()
+                            sample
+                                .request
+                                .headers
+                                .iter()
                                 .map(|(k, v)| format!("{}: {}", k, v))
                                 .collect::<Vec<_>>()
                                 .join(", "),
@@ -149,16 +156,17 @@ impl GeminiPrompt {
             })
             .take(limit)
             .collect();
-            
+
         if examples.is_empty() {
             "No high-priority request examples available".to_string()
         } else {
             examples.join("\n\n")
         }
     }
-    
+
     fn extract_response_examples(samples: &[TrafficSample], limit: usize) -> String {
-        let examples: Vec<String> = samples.iter()
+        let examples: Vec<String> = samples
+            .iter()
             .filter_map(|sample| {
                 sample.response.as_ref().and_then(|response| {
                     response.body.as_ref().and_then(|body| {
@@ -166,7 +174,9 @@ impl GeminiPrompt {
                             Some(format!(
                                 "Status: {}\nHeaders: {}\nBody: (captured {} bytes)",
                                 response.status_code,
-                                response.headers.iter()
+                                response
+                                    .headers
+                                    .iter()
                                     .map(|(k, v)| format!("{}: {}", k, v))
                                     .collect::<Vec<_>>()
                                     .join(", "),
@@ -180,27 +190,28 @@ impl GeminiPrompt {
             })
             .take(limit)
             .collect();
-            
+
         if examples.is_empty() {
             "No high-priority response examples available".to_string()
         } else {
             examples.join("\n\n")
         }
     }
-    
+
     fn analyze_status_codes(samples: &[TrafficSample]) -> String {
         let mut status_counts: HashMap<u16, usize> = HashMap::new();
-        
+
         for sample in samples {
             if let Some(response) = &sample.response {
                 *status_counts.entry(response.status_code).or_insert(0) += 1;
             }
         }
-        
+
         let mut status_list: Vec<_> = status_counts.into_iter().collect();
         status_list.sort_by(|a, b| b.1.cmp(&a.1)); // Sort by count descending
-        
-        status_list.into_iter()
+
+        status_list
+            .into_iter()
             .map(|(code, count)| format!("{}: {} times", code, count))
             .collect::<Vec<_>>()
             .join(", ")
