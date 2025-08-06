@@ -34,7 +34,7 @@ pub enum CompressionType {
     None,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ContentPriority {
     High,    // JSON, XML - critical for API docs
     Medium,  // Form data, text, CSV

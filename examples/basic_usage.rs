@@ -20,8 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = Config::from_env()?;
     let (_layer, mut middleware) = DevDocsMiddleware::new(config);
 
-    // Start middleware processing in background
+    // Start middleware processing in background (now includes AI processing)
     tokio::spawn(async move {
+        println!("Starting DevDocs middleware with AI processing");
         middleware.start_processing().await;
     });
 

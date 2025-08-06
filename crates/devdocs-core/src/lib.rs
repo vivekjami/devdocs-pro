@@ -8,6 +8,8 @@ pub mod models;
 pub mod utils;
 pub mod errors;
 pub mod body_capture;
+pub mod ai;
+pub mod analysis;
 
 pub use config::Config;
 pub use models::*;

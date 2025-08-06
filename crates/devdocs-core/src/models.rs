@@ -42,4 +42,24 @@ pub struct TrafficSample {
     pub request: HttpRequest,
     pub response: Option<HttpResponse>,
     pub endpoint_pattern: String,
+    pub ai_analysis: Option<AIAnalysisResult>, // NEW field for Day 4
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIAnalysisResult {
+    pub endpoint_description: String,
+    pub parameter_documentation: HashMap<String, String>,
+    pub response_documentation: String,
+    pub example_requests: Vec<GeneratedExample>,
+    pub business_logic_explanation: String,
+    pub confidence_score: f64,
+    pub generated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratedExample {
+    pub description: String,
+    pub request_example: Option<String>,
+    pub response_example: Option<String>,
+    pub curl_command: Option<String>,
 }

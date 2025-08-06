@@ -146,6 +146,7 @@ where
                                 request: http_request,
                                 response: Some(http_response),
                                 endpoint_pattern: devdocs_core::utils::extract_endpoint_pattern(&this.path),
+                                ai_analysis: None, // Will be populated by AI processor
                             };
 
                             // Send sample for processing (non-blocking)
