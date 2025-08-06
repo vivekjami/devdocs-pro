@@ -89,22 +89,24 @@ impl Config {
     }
 
     pub fn is_path_excluded(&self, path: &str) -> bool {
-        self.excluded_paths.iter().any(|excluded| path.starts_with(excluded))
+        self.excluded_paths
+            .iter()
+            .any(|excluded| path.starts_with(excluded))
     }
 
     pub fn validate(&self) -> Result<(), String> {
         if !(0.0..=1.0).contains(&self.sampling_rate) {
             return Err("Sampling rate must be between 0.0 and 1.0".to_string());
         }
-        
+
         if self.max_body_size == 0 {
             return Err("Max body size must be greater than 0".to_string());
         }
-        
+
         if self.server_url.is_empty() {
             return Err("Server URL cannot be empty".to_string());
         }
-        
+
         Ok(())
     }
 }
@@ -144,7 +146,7 @@ mod tests {
         env::remove_var("DEVDOCS_MAX_BODY_SIZE");
         env::remove_var("DEVDOCS_TEMP_DIR");
         env::remove_var("DEVDOCS_CAPTURE_BODIES");
-        
+
         let config = Config::from_env().unwrap();
         assert_eq!(config.sampling_rate, 0.1);
         assert_eq!(config.max_body_size, 10 * 1024 * 1024);
@@ -156,12 +158,12 @@ mod tests {
         env::set_var("DEVDOCS_SAMPLING_RATE", "0.5");
         env::set_var("DEVDOCS_MAX_BODY_SIZE", "5242880"); // 5MB
         env::set_var("DEVDOCS_CAPTURE_BODIES", "false");
-        
+
         let config = Config::from_env().unwrap();
         assert_eq!(config.sampling_rate, 0.5);
         assert_eq!(config.max_body_size, 5242880);
         assert_eq!(config.body_capture.enabled, false);
-        
+
         // Clean up
         env::remove_var("DEVDOCS_SAMPLING_RATE");
         env::remove_var("DEVDOCS_MAX_BODY_SIZE");
@@ -190,7 +192,7 @@ mod tests {
             excluded_paths: vec!["/health".to_string(), "/api/internal".to_string()],
             ..Default::default()
         };
-        
+
         assert!(config.is_path_excluded("/health"));
         assert!(config.is_path_excluded("/health/check"));
         assert!(config.is_path_excluded("/api/internal/metrics"));
@@ -204,7 +206,7 @@ mod tests {
             sampling_rate: 0.0,
             ..Default::default()
         };
-        
+
         // With 0% sampling, should never sample
         for _ in 0..100 {
             assert!(!config.should_sample());
@@ -217,7 +219,7 @@ mod tests {
             sampling_rate: 1.0,
             ..Default::default()
         };
-        
+
         // With 100% sampling, should always sample
         for _ in 0..100 {
             assert!(config.should_sample());
@@ -235,8 +237,11 @@ mod tests {
         let mut config = Config::default();
         config.sampling_rate = -0.1;
         assert!(config.validate().is_err());
-        assert_eq!(config.validate().unwrap_err(), "Sampling rate must be between 0.0 and 1.0");
-        
+        assert_eq!(
+            config.validate().unwrap_err(),
+            "Sampling rate must be between 0.0 and 1.0"
+        );
+
         config.sampling_rate = 1.5;
         assert!(config.validate().is_err());
     }
@@ -246,7 +251,10 @@ mod tests {
         let mut config = Config::default();
         config.max_body_size = 0;
         assert!(config.validate().is_err());
-        assert_eq!(config.validate().unwrap_err(), "Max body size must be greater than 0");
+        assert_eq!(
+            config.validate().unwrap_err(),
+            "Max body size must be greater than 0"
+        );
     }
 
     #[test]
@@ -262,7 +270,7 @@ mod tests {
         let config = Config::default();
         let serialized = serde_json::to_string(&config).unwrap();
         assert!(serialized.contains("sampling_rate"));
-        
+
         let deserialized: Config = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.sampling_rate, config.sampling_rate);
         assert_eq!(deserialized.max_body_size, config.max_body_size);
@@ -273,7 +281,7 @@ mod tests {
         let config = BodyCaptureConfig::default();
         let serialized = serde_json::to_string(&config).unwrap();
         assert!(serialized.contains("enabled"));
-        
+
         let deserialized: BodyCaptureConfig = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.enabled, config.enabled);
         assert_eq!(deserialized.max_size, config.max_size);
@@ -283,7 +291,7 @@ mod tests {
     fn test_config_clone() {
         let config1 = Config::default();
         let config2 = config1.clone();
-        
+
         assert_eq!(config1.sampling_rate, config2.sampling_rate);
         assert_eq!(config1.max_body_size, config2.max_body_size);
         assert_eq!(config1.excluded_paths, config2.excluded_paths);
@@ -323,7 +331,7 @@ mod tests {
     fn test_config_pii_filtering() {
         let config = Config::default();
         assert_eq!(config.enable_pii_filtering, true);
-        
+
         let config_no_pii = Config {
             enable_pii_filtering: false,
             ..Default::default()

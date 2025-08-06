@@ -83,7 +83,9 @@ mod tests {
     #[tokio::test]
     async fn test_network_error() {
         // Create a reqwest error by making a request to invalid URL
-        let error = reqwest::get("http://invalid.url.that.does.not.exist.123456789").await.unwrap_err();
+        let error = reqwest::get("http://invalid.url.that.does.not.exist.123456789")
+            .await
+            .unwrap_err();
         let devdocs_error = DevDocsError::Network(error);
         assert!(devdocs_error.to_string().contains("Network error"));
         assert_eq!(devdocs_error.error_code(), 1002);
@@ -112,7 +114,10 @@ mod tests {
 
     #[test]
     fn test_body_too_large_error() {
-        let error = DevDocsError::BodyTooLarge { size: 1000, limit: 500 };
+        let error = DevDocsError::BodyTooLarge {
+            size: 1000,
+            limit: 500,
+        };
         assert_eq!(error.to_string(), "Body too large: 1000 > 500");
         assert_eq!(error.error_code(), 1005);
         assert!(!error.is_retryable());
@@ -161,7 +166,10 @@ mod tests {
     #[test]
     fn test_schema_inference_error() {
         let error = DevDocsError::SchemaInference("Failed to infer schema".to_string());
-        assert_eq!(error.to_string(), "Schema inference error: Failed to infer schema");
+        assert_eq!(
+            error.to_string(),
+            "Schema inference error: Failed to infer schema"
+        );
         assert_eq!(error.error_code(), 1011);
         assert!(!error.is_retryable());
     }
@@ -179,15 +187,15 @@ mod tests {
         fn test_function() -> Result<i32> {
             Ok(42)
         }
-        
+
         let result = test_function();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 42);
-        
+
         fn error_function() -> Result<i32> {
             Err(DevDocsError::Config("Test error".to_string()))
         }
-        
+
         let error_result = error_function();
         assert!(error_result.is_err());
     }
@@ -212,7 +220,7 @@ mod tests {
         // Retryable errors
         assert!(DevDocsError::RateLimit("test".to_string()).is_retryable());
         assert!(DevDocsError::Timeout("test".to_string()).is_retryable());
-        
+
         // Non-retryable errors
         assert!(!DevDocsError::Config("test".to_string()).is_retryable());
         assert!(!DevDocsError::InvalidRequest("test".to_string()).is_retryable());
@@ -220,7 +228,11 @@ mod tests {
         assert!(!DevDocsError::AiProcessing("test".to_string()).is_retryable());
         assert!(!DevDocsError::SchemaInference("test".to_string()).is_retryable());
         assert!(!DevDocsError::TrafficAnalysis("test".to_string()).is_retryable());
-        assert!(!DevDocsError::BodyTooLarge { size: 100, limit: 50 }.is_retryable());
+        assert!(!DevDocsError::BodyTooLarge {
+            size: 100,
+            limit: 50
+        }
+        .is_retryable());
     }
 
     #[test]
@@ -236,7 +248,7 @@ mod tests {
             DevDocsError::SchemaInference("".to_string()),
             DevDocsError::TrafficAnalysis("".to_string()),
         ];
-        
+
         let mut codes = std::collections::HashSet::new();
         for error in errors {
             let code = error.error_code();
