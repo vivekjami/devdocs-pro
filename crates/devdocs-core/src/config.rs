@@ -1,3 +1,4 @@
+use crate::security::MasterSecurityConfig;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::PathBuf;
@@ -12,6 +13,8 @@ pub struct Config {
     pub enable_pii_filtering: bool,
     pub server_url: String,
     pub body_capture: BodyCaptureConfig,
+    /// Comprehensive security configuration
+    pub security: MasterSecurityConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,6 +59,7 @@ impl Default for Config {
             enable_pii_filtering: true,
             server_url: "https://api.devdocs.pro".to_string(),
             body_capture: BodyCaptureConfig::default(),
+            security: MasterSecurityConfig::default(),
         }
     }
 }

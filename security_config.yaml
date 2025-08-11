@@ -1,0 +1,437 @@
+# DevDocs Pro - Enterprise Security Configuration
+# This file contains comprehensive security settings for production deployment
+
+global:
+  security_mode: Production
+  default_security_level: Internal
+  enable_security_headers: true
+  security_headers:
+    hsts: true
+    hsts_max_age: 31536000  # 1 year
+    content_type_options: true
+    frame_options: true
+    frame_options_value: "DENY"
+    xss_protection: true
+    csp: true
+    csp_directives:
+      default-src: "'self'"
+      script-src: "'self' 'unsafe-inline'"
+      style-src: "'self' 'unsafe-inline'"
+      img-src: "'self' data: https:"
+    referrer_policy: true
+    referrer_policy_value: "strict-origin-when-cross-origin"
+  enable_cors: true
+  cors:
+    allowed_origins:
+      - "https://localhost:3000"
+      - "https://app.devdocs.pro"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed_headers:
+      - "Content-Type"
+      - "Authorization"
+      - "X-Requested-With"
+    exposed_headers:
+      - "X-Total-Count"
+    allow_credentials: true
+    max_age: 86400  # 24 hours
+  enable_csrf: true
+  csrf:
+    token_header: "X-CSRF-Token"
+    token_cookie: "csrf_token"
+    token_expiry: 3600  # 1 hour
+    secure_cookie: true
+    same_site: "Strict"
+  policy_enforcement:
+    strict_enforcement: true
+    violation_actions:
+      - violation_type: "pii_detected"
+        action: Block
+        parameters: {}
+      - violation_type: "unauthorized_access"
+        action: Block
+        parameters: {}
+    grace_period_seconds: 300  # 5 minutes
+    learning_mode: false
+
+encryption:
+  enabled: true
+  key_rotation_hours: 24
+  master_key_id: "production_master_key"
+  algorithm: Aes256Gcm
+  key_derivation:
+    memory_cost: 65536  # 64 MB
+    time_cost: 3
+    parallelism: 4
+    salt_length: 32
+
+pii_protection:
+  enabled: true
+  confidence_threshold: 0.7
+  redaction_strategy: Placeholder
+  custom_patterns: []
+  enable_ml_detection: true
+  field_whitelist:
+    - "id"
+    - "created_at"
+    - "updated_at"
+    - "version"
+  enable_context_detection: true
+
+authentication:
+  enabled: true
+  jwt_secret: "${JWT_SECRET}"  # Load from environment
+  token_expiry_seconds: 3600  # 1 hour
+  enable_api_keys: true
+  enable_oauth2: false
+  oauth2: null
+  enable_saml: false
+  saml: null
+  multi_tenant:
+    enabled: true
+    isolation_level: Complete
+    default_permissions:
+      - "read"
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_size: 100
+
+audit:
+  enabled: true
+  log_level: Important
+  storage:
+    backend: FileSystem
+    connection_string: "./audit_logs"
+    encrypt_at_rest: true
+    enable_compression: true
+    batch_size: 100
+  retention:
+    retention_days: 365  # 1 year
+    enable_archiving: true
+    archive_storage: null
+    auto_cleanup: true
+  enable_alerting: true
+  compliance_standards:
+    - Soc2
+    - Gdpr
+  enable_integrity_verification: true
+
+rate_limiting:
+  enabled: true
+  global:
+    requests_per_second: 1000
+    requests_per_minute: 10000
+    requests_per_hour: 100000
+    requests_per_day: 1000000
+  per_user:
+    requests_per_second: 100
+    requests_per_minute: 1000
+    requests_per_hour: 10000
+    requests_per_day: 100000
+    concurrent_requests: 50
+  per_ip:
+    requests_per_second: 50
+    requests_per_minute: 500
+    requests_per_hour: 5000
+    concurrent_requests: 20
+    whitelist: []
+    blacklist: []
+  ddos_protection:
+    enabled: true
+    detection_threshold: 1000
+    detection_window_seconds: 60
+    block_duration_seconds: 3600
+    auto_block_suspicious_ips: true
+  burst_handling:
+    allow_bursts: true
+    burst_size: 10
+    burst_replenish_rate: 1
+
+compliance:
+  enabled: true
+  standards:
+    - Gdpr:
+        enabled: true
+        data_controller: "DevDocs Pro Inc."
+        data_protection_officer: null
+        lawful_basis:
+          - LegitimateInterests
+        consent_management:
+          require_explicit_consent: true
+          consent_withdrawal_enabled: true
+          consent_granularity: PerPurpose
+        data_subject_rights:
+          right_to_access: true
+          right_to_rectification: true
+          right_to_erasure: true
+          right_to_restrict_processing: true
+          right_to_data_portability: true
+          right_to_object: true
+          response_time_days: 30
+        breach_notification_hours: 72
+    - Soc2:
+        enabled: true
+        trust_service_criteria:
+          - Security
+          - Availability
+          - Confidentiality
+        control_environment:
+          governance_oversight: true
+          risk_assessment: true
+          control_activities: true
+          information_communication: true
+        monitoring:
+          continuous_monitoring: true
+          periodic_assessments: true
+          deficiency_remediation: true
+  data_classification:
+    enabled: true
+    classification_levels:
+      - level: "Public"
+        description: "Information that can be freely shared"
+        handling_requirements: []
+        retention_period_days: 365
+      - level: "Internal"
+        description: "Information for internal use only"
+        handling_requirements:
+          - requirement_type: AccessControl
+            mandatory: true
+            parameters: {}
+        retention_period_days: 1095  # 3 years
+      - level: "Confidential"
+        description: "Sensitive information requiring protection"
+        handling_requirements:
+          - requirement_type: Encryption
+            mandatory: true
+            parameters: {}
+          - requirement_type: AccessControl
+            mandatory: true
+            parameters: {}
+          - requirement_type: AuditLogging
+            mandatory: true
+            parameters: {}
+        retention_period_days: 2555  # 7 years
+    auto_classification: true
+    manual_override: true
+  retention_policies:
+    - id: "api_logs"
+      name: "API Logs Retention"
+      data_types:
+        - "api_logs"
+        - "access_logs"
+      retention_period_days: 365
+      deletion_method: HardDelete
+      legal_hold_override: true
+    - id: "audit_logs"
+      name: "Audit Logs Retention"
+      data_types:
+        - "audit_logs"
+        - "security_logs"
+      retention_period_days: 2555  # 7 years
+      deletion_method: HardDelete
+      legal_hold_override: true
+  privacy:
+    privacy_by_design: true
+    privacy_by_default: true
+    data_minimization: true
+    purpose_limitation: true
+    storage_limitation: true
+    accuracy_requirement: true
+    integrity_confidentiality: true
+    accountability: true
+  audit_requirements:
+    continuous_monitoring: true
+    log_integrity_verification: true
+    access_logging: true
+    change_logging: true
+    security_event_logging: true
+    compliance_reporting: true
+
+secrets:
+  enabled: true
+  storage_backend:
+    LocalFile:
+      path: "./secrets"
+  encryption:
+    master_key_id: "secrets_master_key"
+    algorithm: "AES-256-GCM"
+    key_derivation:
+      iterations: 100000
+      salt_length: 32
+      key_length: 32
+  access_control:
+    enable_rbac: true
+    default_permissions:
+      - "read"
+    require_approval: false
+    log_access: true
+  rotation:
+    auto_rotation: true
+    default_rotation_days: 90
+    rotation_policies: {}
+    grace_period_days: 7
+  audit:
+    log_operations: true
+    log_access: true
+    log_rotation: true
+    audit_retention_days: 365
+
+monitoring:
+  enabled: true
+  real_time:
+    enabled: true
+    interval_seconds: 60
+    buffer_size: 10000
+    streaming_alerts: true
+  anomaly_detection:
+    enabled: true
+    algorithms:
+      - StatisticalOutlier
+      - BehavioralAnalysis
+    sensitivity: 0.8
+    learning_period_hours: 24
+    min_data_points: 100
+  threat_detection:
+    enabled: true
+    intelligence_feeds: []
+    detection_rules: []
+    auto_response:
+      enabled: true
+      actions:
+        - action_type: SendAlert
+          parameters: {}
+          severity_threshold: High
+      cooldown_seconds: 300
+  alerting:
+    enabled: true
+    channels: []
+    rules: []
+    rate_limiting:
+      enabled: true
+      max_alerts_per_minute: 10
+      max_alerts_per_hour: 100
+      duplicate_suppression_minutes: 5
+  metrics:
+    enabled: true
+    retention_days: 90
+    export:
+      prometheus: true
+      prometheus_endpoint: "/metrics"
+      custom_export: false
+      custom_config: {}
+
+data_protection:
+  enabled: true
+  encryption:
+    field_level_encryption: true
+    algorithm: "AES-256-GCM"
+    key_management:
+      rotation_interval_days: 90
+      derivation_method: "PBKDF2"
+      storage_backend: "local"
+    encryption_scope:
+      always_encrypt:
+        - "password"
+        - "ssn"
+        - "credit_card"
+      classification_based: true
+      custom_rules: []
+  anonymization:
+    enabled: true
+    techniques:
+      - KAnonymity
+      - Suppression
+    k_anonymity_threshold: 5
+    l_diversity:
+      l_value: 2
+      sensitive_attributes:
+        - "salary"
+        - "medical_condition"
+    t_closeness: null
+  pseudonymization:
+    enabled: true
+    method: Hash
+    key_management:
+      key_derivation: "HKDF"
+      salt_generation: "random"
+      key_rotation: true
+    reversible: false
+  data_masking:
+    enabled: true
+    rules:
+      - field_pattern: "email"
+        masking_type:
+          Partial:
+            show_first: 2
+            show_last: 0
+        parameters: {}
+    default_mask_char: '*'
+    preserve_format: true
+  privacy_analytics:
+    enabled: true
+    differential_privacy:
+      epsilon: 1.0
+      delta: 0.00001
+      noise_mechanism: Laplace
+    homomorphic_encryption:
+      scheme: "BFV"
+      key_size: 4096
+      supported_operations:
+        - "add"
+        - "multiply"
+    secure_mpc:
+      protocol: "BGW"
+      parties: 3
+      threshold: 2
+  lifecycle:
+    enabled: true
+    classification_rules:
+      - rule_id: "pii_detection"
+        field_patterns:
+          - "email"
+          - "phone"
+          - "ssn"
+        classification: PersonalData
+        confidence_threshold: 0.8
+    retention_policies:
+      - policy_id: "default"
+        data_types:
+          - "api_logs"
+        retention_period_days: 365
+        legal_hold_support: true
+    deletion_policies:
+      - policy_id: "gdpr_erasure"
+        trigger: DataSubjectRequest
+        deletion_method: HardDelete
+        verification_required: true
+
+# Environment-specific overrides
+environment_overrides:
+  development:
+    environment: "development"
+    security_mode: Development
+    encryption:
+      enabled: false
+    authentication:
+      token_expiry_seconds: 86400  # 24 hours for development
+    monitoring:
+      enabled: false
+  staging:
+    environment: "staging"
+    security_mode: Staging
+    encryption:
+      key_rotation_hours: 168  # 1 week
+    authentication:
+      token_expiry_seconds: 7200  # 2 hours
+    monitoring:
+      real_time_enabled: true
+      anomaly_detection_enabled: false
+  production:
+    environment: "production"
+    security_mode: Production
+    # All settings use defaults for maximum security

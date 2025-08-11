@@ -11,6 +11,14 @@ path = "basic_usage.rs"
 name = "ai_test"
 path = "ai_test.rs"
 
+[[bin]]
+name = "security_example"
+path = "security_example.rs"
+
+[[bin]]
+name = "simple_security_test"
+path = "simple_security_test.rs"
+
 [dependencies]
 devdocs-middleware = { path = "../crates/devdocs-middleware" }
 devdocs-core = { path = "../crates/devdocs-core" }

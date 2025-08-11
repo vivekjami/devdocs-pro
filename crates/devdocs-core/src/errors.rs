@@ -5,6 +5,9 @@ pub enum DevDocsError {
     #[error("Configuration error: {0}")]
     Config(String),
 
+    #[error("Configuration error: {0}")]
+    Configuration(String),
+
     #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
 
@@ -13,6 +16,9 @@ pub enum DevDocsError {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("Storage error: {0}")]
+    Storage(String),
 
     #[error("Body too large: {size} > {limit}")]
     BodyTooLarge { size: usize, limit: usize },
@@ -29,6 +35,12 @@ pub enum DevDocsError {
     #[error("Authentication failed: {0}")]
     Authentication(String),
 
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
     #[error("Timeout error: {0}")]
     Timeout(String),
 
@@ -37,6 +49,24 @@ pub enum DevDocsError {
 
     #[error("Traffic analysis error: {0}")]
     TrafficAnalysis(String),
+
+    #[error("Encryption error: {0}")]
+    Encryption(String),
+
+    #[error("PII detection error: {0}")]
+    PiiDetection(String),
+
+    #[error("Audit error: {0}")]
+    Audit(String),
+
+    #[error("Compliance error: {0}")]
+    Compliance(String),
+
+    #[error("Secrets management error: {0}")]
+    SecretsManagement(String),
+
+    #[error("Security violation: {0}")]
+    SecurityViolation(String),
 }
 
 impl DevDocsError {
@@ -50,17 +80,27 @@ impl DevDocsError {
     pub fn error_code(&self) -> u32 {
         match self {
             DevDocsError::Config(_) => 1001,
+            DevDocsError::Configuration(_) => 1001,
             DevDocsError::Network(_) => 1002,
             DevDocsError::Serialization(_) => 1003,
             DevDocsError::Io(_) => 1004,
-            DevDocsError::BodyTooLarge { .. } => 1005,
-            DevDocsError::InvalidRequest(_) => 1006,
-            DevDocsError::AiProcessing(_) => 1007,
-            DevDocsError::RateLimit(_) => 1008,
-            DevDocsError::Authentication(_) => 1009,
-            DevDocsError::Timeout(_) => 1010,
-            DevDocsError::SchemaInference(_) => 1011,
-            DevDocsError::TrafficAnalysis(_) => 1012,
+            DevDocsError::Storage(_) => 1005,
+            DevDocsError::BodyTooLarge { .. } => 1006,
+            DevDocsError::InvalidRequest(_) => 1007,
+            DevDocsError::AiProcessing(_) => 1008,
+            DevDocsError::RateLimit(_) => 1009,
+            DevDocsError::Authentication(_) => 1010,
+            DevDocsError::Unauthorized(_) => 1011,
+            DevDocsError::NotFound(_) => 1012,
+            DevDocsError::Timeout(_) => 1013,
+            DevDocsError::SchemaInference(_) => 1014,
+            DevDocsError::TrafficAnalysis(_) => 1015,
+            DevDocsError::Encryption(_) => 1016,
+            DevDocsError::PiiDetection(_) => 1017,
+            DevDocsError::Audit(_) => 1018,
+            DevDocsError::Compliance(_) => 1019,
+            DevDocsError::SecretsManagement(_) => 1020,
+            DevDocsError::SecurityViolation(_) => 1021,
         }
     }
 }
