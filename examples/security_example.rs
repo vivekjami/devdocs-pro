@@ -1,10 +1,10 @@
 //! Comprehensive security system example
-//! 
+//!
 //! This example demonstrates how to use all the security features
 //! of DevDocs Pro in a production environment.
 
-use devdocs_core::security::*;
 use devdocs_core::security::monitoring::*;
+use devdocs_core::security::*;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -73,7 +73,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn load_security_configuration() -> Result<SecurityConfigManager, Box<dyn std::error::Error>> {
+async fn load_security_configuration() -> Result<SecurityConfigManager, Box<dyn std::error::Error>>
+{
     // Try to load from file first, fallback to environment variables
     let config_manager = if std::path::Path::new("security_config.yaml").exists() {
         println!("  📄 Loading from security_config.yaml");
@@ -86,33 +87,71 @@ async fn load_security_configuration() -> Result<SecurityConfigManager, Box<dyn 
     // Display current security mode
     let config = config_manager.get_config();
     println!("  🔧 Security Mode: {:?}", config.global.security_mode);
-    println!("  🔐 Encryption: {}", if config.encryption.enabled { "Enabled" } else { "Disabled" });
-    println!("  👤 Authentication: {}", if config.authentication.enabled { "Enabled" } else { "Disabled" });
-    println!("  📊 Monitoring: {}", if config.monitoring.enabled { "Enabled" } else { "Disabled" });
+    println!(
+        "  🔐 Encryption: {}",
+        if config.encryption.enabled {
+            "Enabled"
+        } else {
+            "Disabled"
+        }
+    );
+    println!(
+        "  👤 Authentication: {}",
+        if config.authentication.enabled {
+            "Enabled"
+        } else {
+            "Disabled"
+        }
+    );
+    println!(
+        "  📊 Monitoring: {}",
+        if config.monitoring.enabled {
+            "Enabled"
+        } else {
+            "Disabled"
+        }
+    );
 
     Ok(config_manager)
 }
 
-async fn demo_authentication(security_manager: &mut SecurityManager) -> Result<(), Box<dyn std::error::Error>> {
+async fn demo_authentication(
+    security_manager: &mut SecurityManager,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("  🔑 Creating test user...");
-    
+
     // Create a security context for testing
     let context = SecurityContext::new(Uuid::new_v4(), "192.168.1.100".to_string())
         .with_user("demo_user".to_string(), Some("demo_org".to_string()))
         .with_permissions(vec!["read".to_string(), "write".to_string()])
         .with_security_level(SecurityLevel::Confidential);
 
-    println!("  ✅ User context created: {}", context.user_id.as_ref().unwrap());
-    println!("  🏢 Organization: {}", context.organization_id.as_ref().unwrap());
+    println!(
+        "  ✅ User context created: {}",
+        context.user_id.as_ref().unwrap()
+    );
+    println!(
+        "  🏢 Organization: {}",
+        context.organization_id.as_ref().unwrap()
+    );
     println!("  🔒 Security Level: {:?}", context.security_level);
     println!("  📋 Permissions: {:?}", context.permissions);
 
     // Test authentication with a mock token
     let mock_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.test_payload.signature";
-    match security_manager.authenticate_request(mock_token, &["read".to_string()]).await {
+    match security_manager
+        .authenticate_request(mock_token, &["read".to_string()])
+        .await
+    {
         Ok(auth_context) => {
             println!("  ✅ Authentication successful");
-            println!("  👤 User ID: {}", auth_context.user_id.as_ref().unwrap_or(&"unknown".to_string()));
+            println!(
+                "  👤 User ID: {}",
+                auth_context
+                    .user_id
+                    .as_ref()
+                    .unwrap_or(&"unknown".to_string())
+            );
         }
         Err(e) => {
             println!("  ⚠️  Authentication failed (expected in demo): {}", e);
@@ -122,7 +161,9 @@ async fn demo_authentication(security_manager: &mut SecurityManager) -> Result<(
     Ok(())
 }
 
-async fn demo_data_protection(security_manager: &mut SecurityManager) -> Result<(), Box<dyn std::error::Error>> {
+async fn demo_data_protection(
+    security_manager: &mut SecurityManager,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Test data with PII
     let test_data = r#"{
         "user": {
@@ -143,25 +184,31 @@ async fn demo_data_protection(security_manager: &mut SecurityManager) -> Result<
         .with_security_level(SecurityLevel::Confidential);
 
     // Validate security requirements
-    let validation_result = security_manager.validate_security(test_data.as_bytes(), &context).await?;
-    
+    let validation_result = security_manager
+        .validate_security(test_data.as_bytes(), &context)
+        .await?;
+
     println!("  🔍 Security validation results:");
     println!("    - Valid: {}", validation_result.is_valid);
     println!("    - Risk Score: {:.2}", validation_result.risk_score);
     println!("    - Violations: {}", validation_result.violations.len());
-    
+
     for violation in &validation_result.violations {
-        println!("    - ⚠️  {}: {}", 
-            format!("{:?}", violation.violation_type), 
+        println!(
+            "    - ⚠️  {}: {}",
+            format!("{:?}", violation.violation_type),
             violation.description
         );
     }
 
     // Apply data protection
-    let protected_data = security_manager.secure_data(test_data.as_bytes(), &context).await?;
+    let protected_data = security_manager
+        .secure_data(test_data.as_bytes(), &context)
+        .await?;
     println!("  🛡️  Data protection applied");
     println!("    - Protected size: {} bytes", protected_data.len());
-    println!("    - Reduction: {:.1}%", 
+    println!(
+        "    - Reduction: {:.1}%",
         (1.0 - protected_data.len() as f64 / test_data.len() as f64) * 100.0
     );
 
@@ -170,7 +217,7 @@ async fn demo_data_protection(security_manager: &mut SecurityManager) -> Result<
 
 async fn demo_encryption() -> Result<(), Box<dyn std::error::Error>> {
     println!("  🔐 Initializing encryption system...");
-    
+
     let encryption_config = EncryptionConfig::default();
     let mut encryptor = DataEncryptor::new(&encryption_config)?;
 
@@ -204,7 +251,7 @@ async fn demo_encryption() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn demo_audit_logging() -> Result<(), Box<dyn std::error::Error>> {
     println!("  📝 Initializing audit logging system...");
-    
+
     let audit_config = AuditConfig::default();
     let mut auditor = AuditLogger::new(&audit_config)?;
 
@@ -216,10 +263,18 @@ async fn demo_audit_logging() -> Result<(), Box<dyn std::error::Error>> {
 
     // Authentication event
     let mut auth_details = HashMap::new();
-    auth_details.insert("method".to_string(), serde_json::Value::String("jwt".to_string()));
-    auth_details.insert("user_agent".to_string(), serde_json::Value::String("DevDocs-Demo/1.0".to_string()));
+    auth_details.insert(
+        "method".to_string(),
+        serde_json::Value::String("jwt".to_string()),
+    );
+    auth_details.insert(
+        "user_agent".to_string(),
+        serde_json::Value::String("DevDocs-Demo/1.0".to_string()),
+    );
 
-    auditor.log_authentication("demo_user", "192.168.1.100", true, auth_details).await?;
+    auditor
+        .log_authentication("demo_user", "192.168.1.100", true, auth_details)
+        .await?;
     println!("  ✅ Authentication event logged");
 
     // Data access event
@@ -227,7 +282,9 @@ async fn demo_audit_logging() -> Result<(), Box<dyn std::error::Error>> {
     println!("  ✅ Data access event logged");
 
     // Security violation event
-    auditor.log_security_violation(&context, "rate_limit_exceeded", "User exceeded rate limit").await?;
+    auditor
+        .log_security_violation(&context, "rate_limit_exceeded", "User exceeded rate limit")
+        .await?;
     println!("  ✅ Security violation event logged");
 
     // Query audit events
@@ -260,13 +317,13 @@ async fn demo_audit_logging() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn demo_rate_limiting() -> Result<(), Box<dyn std::error::Error>> {
     println!("  🚦 Initializing rate limiting system...");
-    
+
     let rate_config = RateLimitingConfig::default();
     let rate_limiter = RateLimiter::new(&rate_config)?;
 
     // Test IP-based rate limiting
     println!("  🌐 Testing IP-based rate limiting...");
-    
+
     let test_ip = "192.168.1.200";
     for i in 1..=5 {
         match rate_limiter.check_rate_limit(test_ip).await {
@@ -277,7 +334,7 @@ async fn demo_rate_limiting() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test user-based rate limiting
     println!("  👤 Testing user-based rate limiting...");
-    
+
     let test_user = "demo_user_123";
     for i in 1..=3 {
         match rate_limiter.check_user_rate_limit(test_user).await {
@@ -298,7 +355,7 @@ async fn demo_rate_limiting() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn demo_compliance_checking() -> Result<(), Box<dyn std::error::Error>> {
     println!("  ⚖️  Initializing compliance checking system...");
-    
+
     let compliance_config = ComplianceConfig::default();
     let compliance_checker = ComplianceChecker::new(&compliance_config)?;
 
@@ -315,19 +372,30 @@ async fn demo_compliance_checking() -> Result<(), Box<dyn std::error::Error>> {
     }"#;
 
     println!("  🔍 Checking compliance for test data...");
-    let compliance_result = compliance_checker.check_compliance(test_data.as_bytes(), &context).await?;
+    let compliance_result = compliance_checker
+        .check_compliance(test_data.as_bytes(), &context)
+        .await?;
 
     println!("  📊 Compliance check results:");
-    println!("    - Compliance Score: {:.2}", compliance_result.compliance_score);
+    println!(
+        "    - Compliance Score: {:.2}",
+        compliance_result.compliance_score
+    );
     println!("    - Violations: {}", compliance_result.violations.len());
-    println!("    - Recommendations: {}", compliance_result.recommendations.len());
+    println!(
+        "    - Recommendations: {}",
+        compliance_result.recommendations.len()
+    );
 
     for (standard, status) in &compliance_result.standards_status {
         println!("    - {}: {:?}", standard, status);
     }
 
     for recommendation in &compliance_result.recommendations {
-        println!("    - 💡 {}: {}", recommendation.standard, recommendation.description);
+        println!(
+            "    - 💡 {}: {}",
+            recommendation.standard, recommendation.description
+        );
     }
 
     // Generate compliance report
@@ -342,7 +410,7 @@ async fn demo_compliance_checking() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn demo_security_monitoring() -> Result<(), Box<dyn std::error::Error>> {
     println!("  👁️  Initializing security monitoring system...");
-    
+
     let monitoring_config = SecurityMonitoringConfig::default();
     let mut monitor = SecurityMonitor::new(&monitoring_config)?;
 
@@ -405,25 +473,29 @@ async fn demo_security_monitoring() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn demo_secrets_management() -> Result<(), Box<dyn std::error::Error>> {
     println!("  🔐 Initializing secrets management system...");
-    
+
     let secrets_config = SecretsConfig::default();
     let mut secrets_manager = SecretsManager::new(&secrets_config)?;
 
     // Store various types of secrets
     println!("  💾 Storing secrets...");
 
-    let api_key_id = secrets_manager.store_secret(
-        "demo_api_key".to_string(),
-        "sk_demo_1234567890abcdef".to_string(),
-        SecretType::ApiKey,
-    ).await?;
+    let api_key_id = secrets_manager
+        .store_secret(
+            "demo_api_key".to_string(),
+            "sk_demo_1234567890abcdef".to_string(),
+            SecretType::ApiKey,
+        )
+        .await?;
     println!("  ✅ API key stored with ID: {}", api_key_id);
 
-    let db_password_id = secrets_manager.store_secret(
-        "demo_db_password".to_string(),
-        "super_secure_password_123!".to_string(),
-        SecretType::DatabasePassword,
-    ).await?;
+    let db_password_id = secrets_manager
+        .store_secret(
+            "demo_db_password".to_string(),
+            "super_secure_password_123!".to_string(),
+            SecretType::DatabasePassword,
+        )
+        .await?;
     println!("  ✅ Database password stored with ID: {}", db_password_id);
 
     // Retrieve secrets
@@ -437,8 +509,9 @@ async fn demo_secrets_management() -> Result<(), Box<dyn std::error::Error>> {
     let secrets_list = secrets_manager.list_secrets("demo_user").await?;
     println!("  📋 Secrets inventory:");
     for secret in &secrets_list {
-        println!("    - {}: {:?} (created: {})", 
-            secret.name, 
+        println!(
+            "    - {}: {:?} (created: {})",
+            secret.name,
             secret.secret_type,
             secret.created_at.format("%Y-%m-%d %H:%M:%S")
         );
@@ -446,7 +519,9 @@ async fn demo_secrets_management() -> Result<(), Box<dyn std::error::Error>> {
 
     // Rotate a secret
     println!("  🔄 Rotating API key...");
-    let new_api_key = secrets_manager.rotate_secret(&api_key_id, "demo_user").await?;
+    let new_api_key = secrets_manager
+        .rotate_secret(&api_key_id, "demo_user")
+        .await?;
     println!("  ✅ API key rotated: {}***", &new_api_key[..8]);
 
     // Check for secrets needing rotation
@@ -455,8 +530,10 @@ async fn demo_secrets_management() -> Result<(), Box<dyn std::error::Error>> {
 
     // Get access logs
     let access_logs = secrets_manager.get_access_logs(Some(&api_key_id)).await;
-    println!("  📊 Access logs for API key: {} entries", access_logs.len());
+    println!(
+        "  📊 Access logs for API key: {} entries",
+        access_logs.len()
+    );
 
     Ok(())
 }
-

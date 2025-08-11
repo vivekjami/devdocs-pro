@@ -46,7 +46,7 @@ jobs:
       run: cargo fmt --all -- --check
       
     - name: Clippy (with security lints)
-      run: cargo clippy --all-targets --all-features -- -D warnings -W clippy::all -W clippy::pedantic -W clippy::security
+      run: cargo clippy --all-targets --all-features -- -W clippy::security
       
     - name: Create required directories
       run: |

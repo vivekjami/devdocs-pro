@@ -1,5 +1,5 @@
 //! Advanced data protection and privacy system
-//! 
+//!
 //! Provides comprehensive data protection including encryption,
 //! anonymization, pseudonymization, and privacy-preserving analytics.
 
@@ -309,7 +309,10 @@ impl Default for DataProtectionConfig {
                 k_anonymity_threshold: 5,
                 l_diversity: Some(LDiversityConfig {
                     l_value: 2,
-                    sensitive_attributes: vec!["salary".to_string(), "medical_condition".to_string()],
+                    sensitive_attributes: vec![
+                        "salary".to_string(),
+                        "medical_condition".to_string(),
+                    ],
                 }),
                 t_closeness: None,
             },
@@ -325,13 +328,14 @@ impl Default for DataProtectionConfig {
             },
             data_masking: DataMaskingConfig {
                 enabled: true,
-                rules: vec![
-                    MaskingRule {
-                        field_pattern: "email".to_string(),
-                        masking_type: MaskingType::Partial { show_first: 2, show_last: 0 },
-                        parameters: HashMap::new(),
-                    }
-                ],
+                rules: vec![MaskingRule {
+                    field_pattern: "email".to_string(),
+                    masking_type: MaskingType::Partial {
+                        show_first: 2,
+                        show_last: 0,
+                    },
+                    parameters: HashMap::new(),
+                }],
                 default_mask_char: '*',
                 preserve_format: true,
             },
@@ -355,30 +359,28 @@ impl Default for DataProtectionConfig {
             },
             lifecycle: DataLifecycleConfig {
                 enabled: true,
-                classification_rules: vec![
-                    ClassificationRule {
-                        rule_id: "pii_detection".to_string(),
-                        field_patterns: vec!["email".to_string(), "phone".to_string(), "ssn".to_string()],
-                        classification: DataClassification::PersonalData,
-                        confidence_threshold: 0.8,
-                    }
-                ],
-                retention_policies: vec![
-                    RetentionPolicy {
-                        policy_id: "default".to_string(),
-                        data_types: vec!["api_logs".to_string()],
-                        retention_period_days: 365,
-                        legal_hold_support: true,
-                    }
-                ],
-                deletion_policies: vec![
-                    DeletionPolicy {
-                        policy_id: "gdpr_erasure".to_string(),
-                        trigger: DeletionTrigger::DataSubjectRequest,
-                        deletion_method: DeletionMethod::HardDelete,
-                        verification_required: true,
-                    }
-                ],
+                classification_rules: vec![ClassificationRule {
+                    rule_id: "pii_detection".to_string(),
+                    field_patterns: vec![
+                        "email".to_string(),
+                        "phone".to_string(),
+                        "ssn".to_string(),
+                    ],
+                    classification: DataClassification::PersonalData,
+                    confidence_threshold: 0.8,
+                }],
+                retention_policies: vec![RetentionPolicy {
+                    policy_id: "default".to_string(),
+                    data_types: vec!["api_logs".to_string()],
+                    retention_period_days: 365,
+                    legal_hold_support: true,
+                }],
+                deletion_policies: vec![DeletionPolicy {
+                    policy_id: "gdpr_erasure".to_string(),
+                    trigger: DeletionTrigger::DataSubjectRequest,
+                    deletion_method: DeletionMethod::HardDelete,
+                    verification_required: true,
+                }],
             },
         }
     }
@@ -479,7 +481,11 @@ impl DataProtectionProcessor {
     }
 
     /// Apply data protection based on context and classification
-    pub async fn protect_data(&mut self, data: &[u8], context: &SecurityContext) -> Result<ProtectedData, DevDocsError> {
+    pub async fn protect_data(
+        &mut self,
+        data: &[u8],
+        context: &SecurityContext,
+    ) -> Result<ProtectedData, DevDocsError> {
         if !self.config.enabled {
             return Ok(ProtectedData {
                 original_size: data.len(),
@@ -498,10 +504,10 @@ impl DataProtectionProcessor {
 
         // Classify the data
         let classification = self.classifier.classify_data(data).await?;
-        
+
         // Determine protection level based on context and classification
         let protection_level = self.determine_protection_level(&classification, context);
-        
+
         let mut protected_data = data.to_vec();
         let mut methods = Vec::new();
 
@@ -518,7 +524,10 @@ impl DataProtectionProcessor {
             }
             ProtectionLevel::Standard => {
                 if self.config.pseudonymization.enabled {
-                    protected_data = self.pseudonymizer.pseudonymize_data(&protected_data).await?;
+                    protected_data = self
+                        .pseudonymizer
+                        .pseudonymize_data(&protected_data)
+                        .await?;
                     methods.push(ProtectionMethod::Pseudonymization);
                 }
                 if self.config.data_masking.enabled {
@@ -547,7 +556,10 @@ impl DataProtectionProcessor {
                     methods.push(ProtectionMethod::Anonymization);
                 }
                 if self.config.pseudonymization.enabled {
-                    protected_data = self.pseudonymizer.pseudonymize_data(&protected_data).await?;
+                    protected_data = self
+                        .pseudonymizer
+                        .pseudonymize_data(&protected_data)
+                        .await?;
                     methods.push(ProtectionMethod::Pseudonymization);
                 }
             }
@@ -569,39 +581,52 @@ impl DataProtectionProcessor {
     }
 
     /// Apply differential privacy for analytics
-    pub async fn apply_differential_privacy(&self, query_result: f64, sensitivity: f64) -> Result<f64, DevDocsError> {
+    pub async fn apply_differential_privacy(
+        &self,
+        query_result: f64,
+        sensitivity: f64,
+    ) -> Result<f64, DevDocsError> {
         if !self.config.privacy_analytics.enabled {
             return Ok(query_result);
         }
 
         let dp_config = &self.config.privacy_analytics.differential_privacy;
-        let noise = self.generate_noise(sensitivity, dp_config.epsilon, &dp_config.noise_mechanism)?;
-        
+        let noise =
+            self.generate_noise(sensitivity, dp_config.epsilon, &dp_config.noise_mechanism)?;
+
         Ok(query_result + noise)
     }
 
     /// Generate synthetic data for testing while preserving privacy
-    pub async fn generate_synthetic_data(&self, original_data: &[u8], count: usize) -> Result<Vec<Vec<u8>>, DevDocsError> {
+    pub async fn generate_synthetic_data(
+        &self,
+        original_data: &[u8],
+        count: usize,
+    ) -> Result<Vec<Vec<u8>>, DevDocsError> {
         // Simplified implementation - would use advanced techniques like GANs
         let mut synthetic_data = Vec::new();
-        
+
         for _ in 0..count {
             let mut synthetic = original_data.to_vec();
-            
+
             // Apply noise and modifications
             for byte in &mut synthetic {
                 if self.rng.fill(&mut [0u8; 1]).is_ok() {
                     *byte = (*byte).wrapping_add(1);
                 }
             }
-            
+
             synthetic_data.push(synthetic);
         }
-        
+
         Ok(synthetic_data)
     }
 
-    fn determine_protection_level(&self, classification: &DataClassification, context: &SecurityContext) -> ProtectionLevel {
+    fn determine_protection_level(
+        &self,
+        classification: &DataClassification,
+        context: &SecurityContext,
+    ) -> ProtectionLevel {
         match (classification, context.security_level) {
             (DataClassification::Public, _) => ProtectionLevel::None,
             (DataClassification::Internal, SecurityLevel::Public) => ProtectionLevel::Basic,
@@ -615,7 +640,12 @@ impl DataProtectionProcessor {
 
     fn is_reversible(&self, methods: &[ProtectionMethod]) -> bool {
         // Encryption and some pseudonymization methods are reversible
-        methods.iter().all(|method| matches!(method, ProtectionMethod::Encryption | ProtectionMethod::Masking))
+        methods.iter().all(|method| {
+            matches!(
+                method,
+                ProtectionMethod::Encryption | ProtectionMethod::Masking
+            )
+        })
     }
 
     fn get_retention_policy(&self, classification: &DataClassification) -> Option<String> {
@@ -629,46 +659,55 @@ impl DataProtectionProcessor {
         None
     }
 
-    fn generate_noise(&self, sensitivity: f64, epsilon: f64, mechanism: &NoiseMechanism) -> Result<f64, DevDocsError> {
+    fn generate_noise(
+        &self,
+        sensitivity: f64,
+        epsilon: f64,
+        mechanism: &NoiseMechanism,
+    ) -> Result<f64, DevDocsError> {
         match mechanism {
             NoiseMechanism::Laplace => {
                 // Laplace noise: scale = sensitivity / epsilon
                 let scale = sensitivity / epsilon;
                 let mut bytes = [0u8; 8];
-                self.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e)))?;
-                
+                self.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e))
+                })?;
+
                 let uniform = f64::from_le_bytes(bytes) / f64::MAX;
                 let laplace_noise = if uniform < 0.5 {
                     scale * (2.0 * uniform).ln()
                 } else {
                     -scale * (2.0 * (1.0 - uniform)).ln()
                 };
-                
+
                 Ok(laplace_noise)
             }
             NoiseMechanism::Gaussian => {
                 // Simplified Gaussian noise implementation
                 let scale = sensitivity / epsilon;
                 let mut bytes = [0u8; 8];
-                self.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e)))?;
-                
+                self.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e))
+                })?;
+
                 let uniform = f64::from_le_bytes(bytes) / f64::MAX;
-                let gaussian_noise = scale * ((-2.0 * uniform.ln()).sqrt() * (2.0 * std::f64::consts::PI * uniform).cos());
-                
+                let gaussian_noise = scale
+                    * ((-2.0 * uniform.ln()).sqrt() * (2.0 * std::f64::consts::PI * uniform).cos());
+
                 Ok(gaussian_noise)
             }
             NoiseMechanism::Exponential => {
                 // Exponential mechanism - simplified implementation
                 let scale = sensitivity / epsilon;
                 let mut bytes = [0u8; 8];
-                self.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e)))?;
-                
+                self.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e))
+                })?;
+
                 let uniform = f64::from_le_bytes(bytes) / f64::MAX;
                 let exponential_noise = -scale * uniform.ln();
-                
+
                 Ok(exponential_noise)
             }
         }
@@ -727,14 +766,14 @@ impl DataMasker {
     pub async fn mask_data(&self, data: &[u8]) -> Result<Vec<u8>, DevDocsError> {
         // Simplified implementation - would mask sensitive fields
         let mut masked = data.to_vec();
-        
+
         // Simple masking: replace some bytes with mask character
         for (i, byte) in masked.iter_mut().enumerate() {
             if i % 3 == 0 && *byte != b' ' && *byte != b'\n' {
                 *byte = self.config.default_mask_char as u8;
             }
         }
-        
+
         Ok(masked)
     }
 }
@@ -748,20 +787,20 @@ impl DataClassifier {
 
     pub async fn classify_data(&self, data: &[u8]) -> Result<DataClassification, DevDocsError> {
         let data_str = String::from_utf8_lossy(data);
-        
+
         // Simple classification based on content patterns
         if data_str.contains("@") && data_str.contains(".") {
             return Ok(DataClassification::PersonalData);
         }
-        
+
         if data_str.contains("password") || data_str.contains("secret") {
             return Ok(DataClassification::Confidential);
         }
-        
+
         if data_str.contains("ssn") || data_str.contains("credit_card") {
             return Ok(DataClassification::SensitivePersonalData);
         }
-        
+
         Ok(DataClassification::Internal)
     }
 }
@@ -792,27 +831,33 @@ mod tests {
     async fn test_data_protection() {
         let config = DataProtectionConfig::default();
         let mut processor = DataProtectionProcessor::new(&config).unwrap();
-        
+
         let context = SecurityContext::new(Uuid::new_v4(), "192.168.1.1".to_string())
             .with_security_level(SecurityLevel::Confidential);
-        
+
         let test_data = b"test@example.com";
         let protected = processor.protect_data(test_data, &context).await.unwrap();
-        
+
         assert!(!protected.protection_methods.is_empty());
-        assert!(matches!(protected.metadata.classification, DataClassification::PersonalData));
+        assert!(matches!(
+            protected.metadata.classification,
+            DataClassification::PersonalData
+        ));
     }
 
     #[tokio::test]
     async fn test_differential_privacy() {
         let config = DataProtectionConfig::default();
         let processor = DataProtectionProcessor::new(&config).unwrap();
-        
+
         let original_result = 100.0;
         let sensitivity = 1.0;
-        
-        let private_result = processor.apply_differential_privacy(original_result, sensitivity).await.unwrap();
-        
+
+        let private_result = processor
+            .apply_differential_privacy(original_result, sensitivity)
+            .await
+            .unwrap();
+
         // Result should be different due to added noise
         assert_ne!(original_result, private_result);
     }
@@ -821,30 +866,31 @@ mod tests {
     async fn test_synthetic_data_generation() {
         let config = DataProtectionConfig::default();
         let processor = DataProtectionProcessor::new(&config).unwrap();
-        
+
         let original_data = b"sample data";
-        let synthetic_data = processor.generate_synthetic_data(original_data, 3).await.unwrap();
-        
+        let synthetic_data = processor
+            .generate_synthetic_data(original_data, 3)
+            .await
+            .unwrap();
+
         assert_eq!(synthetic_data.len(), 3);
         assert_eq!(synthetic_data[0].len(), original_data.len());
     }
 
     #[tokio::test]
     async fn test_data_classification() {
-        let rules = vec![
-            ClassificationRule {
-                rule_id: "email_rule".to_string(),
-                field_patterns: vec!["email".to_string()],
-                classification: DataClassification::PersonalData,
-                confidence_threshold: 0.8,
-            }
-        ];
-        
+        let rules = vec![ClassificationRule {
+            rule_id: "email_rule".to_string(),
+            field_patterns: vec!["email".to_string()],
+            classification: DataClassification::PersonalData,
+            confidence_threshold: 0.8,
+        }];
+
         let classifier = DataClassifier::new(&rules).unwrap();
-        
+
         let email_data = b"user@example.com";
         let classification = classifier.classify_data(email_data).await.unwrap();
-        
+
         assert!(matches!(classification, DataClassification::PersonalData));
     }
 
@@ -852,10 +898,10 @@ mod tests {
     async fn test_data_masking() {
         let config = DataMaskingConfig::default();
         let masker = DataMasker::new(&config).unwrap();
-        
+
         let test_data = b"sensitive information";
         let masked_data = masker.mask_data(test_data).await.unwrap();
-        
+
         assert_ne!(test_data, masked_data.as_slice());
         assert_eq!(test_data.len(), masked_data.len());
     }
@@ -864,13 +910,14 @@ mod tests {
     fn test_protection_level_determination() {
         let config = DataProtectionConfig::default();
         let processor = DataProtectionProcessor::new(&config).unwrap();
-        
+
         let context = SecurityContext::new(Uuid::new_v4(), "192.168.1.1".to_string())
             .with_security_level(SecurityLevel::Confidential);
-        
-        let level = processor.determine_protection_level(&DataClassification::PersonalData, &context);
+
+        let level =
+            processor.determine_protection_level(&DataClassification::PersonalData, &context);
         assert!(matches!(level, ProtectionLevel::High));
-        
+
         let level = processor.determine_protection_level(&DataClassification::Public, &context);
         assert!(matches!(level, ProtectionLevel::None));
     }

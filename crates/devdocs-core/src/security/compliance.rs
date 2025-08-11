@@ -1,5 +1,5 @@
 //! Comprehensive compliance and regulatory framework
-//! 
+//!
 //! Supports GDPR, HIPAA, SOC 2, PCI DSS, and other compliance standards
 
 use crate::errors::DevDocsError;
@@ -445,13 +445,11 @@ impl Default for DataClassificationConfig {
                 DataClassificationLevel {
                     level: "Internal".to_string(),
                     description: "Information for internal use only".to_string(),
-                    handling_requirements: vec![
-                        HandlingRequirement {
-                            requirement_type: HandlingRequirementType::AccessControl,
-                            mandatory: true,
-                            parameters: HashMap::new(),
-                        }
-                    ],
+                    handling_requirements: vec![HandlingRequirement {
+                        requirement_type: HandlingRequirementType::AccessControl,
+                        mandatory: true,
+                        parameters: HashMap::new(),
+                    }],
                     retention_period_days: Some(1095), // 3 years
                 },
                 DataClassificationLevel {
@@ -571,7 +569,11 @@ impl ComplianceChecker {
     }
 
     /// Check compliance for data processing
-    pub async fn check_compliance(&self, data: &[u8], context: &SecurityContext) -> Result<ComplianceResult, DevDocsError> {
+    pub async fn check_compliance(
+        &self,
+        data: &[u8],
+        context: &SecurityContext,
+    ) -> Result<ComplianceResult, DevDocsError> {
         if !self.config.enabled {
             return Ok(ComplianceResult {
                 violations: Vec::new(),
@@ -592,16 +594,20 @@ impl ComplianceChecker {
         for standard in &self.config.standards {
             match standard {
                 ComplianceStandard::Gdpr(config) => {
-                    self.check_gdpr_compliance(data, context, config, &mut result).await?;
+                    self.check_gdpr_compliance(data, context, config, &mut result)
+                        .await?;
                 }
                 ComplianceStandard::Hipaa(config) => {
-                    self.check_hipaa_compliance(data, context, config, &mut result).await?;
+                    self.check_hipaa_compliance(data, context, config, &mut result)
+                        .await?;
                 }
                 ComplianceStandard::Soc2(config) => {
-                    self.check_soc2_compliance(data, context, config, &mut result).await?;
+                    self.check_soc2_compliance(data, context, config, &mut result)
+                        .await?;
                 }
                 ComplianceStandard::PciDss(config) => {
-                    self.check_pci_dss_compliance(data, context, config, &mut result).await?;
+                    self.check_pci_dss_compliance(data, context, config, &mut result)
+                        .await?;
                 }
                 _ => {
                     // Other standards not implemented yet
@@ -615,9 +621,17 @@ impl ComplianceChecker {
         Ok(result)
     }
 
-    async fn check_gdpr_compliance(&self, data: &[u8], context: &SecurityContext, config: &GdprConfig, result: &mut ComplianceResult) -> Result<(), DevDocsError> {
+    async fn check_gdpr_compliance(
+        &self,
+        data: &[u8],
+        context: &SecurityContext,
+        config: &GdprConfig,
+        result: &mut ComplianceResult,
+    ) -> Result<(), DevDocsError> {
         if !config.enabled {
-            result.standards_status.insert("GDPR".to_string(), ComplianceStatus::NotApplicable);
+            result
+                .standards_status
+                .insert("GDPR".to_string(), ComplianceStatus::NotApplicable);
             return Ok(());
         }
 
@@ -637,7 +651,8 @@ impl ComplianceChecker {
                 result.recommendations.push(ComplianceRecommendation {
                     standard: "GDPR".to_string(),
                     requirement: "Article 6 - Lawfulness of processing".to_string(),
-                    description: "Ensure valid legal basis for processing personal data".to_string(),
+                    description: "Ensure valid legal basis for processing personal data"
+                        .to_string(),
                     priority: RecommendationPriority::High,
                     remediation_steps: vec![
                         "Implement consent management system".to_string(),
@@ -674,20 +689,29 @@ impl ComplianceChecker {
         }
 
         result.violations.extend(violations);
-        result.standards_status.insert("GDPR".to_string(), 
-            if result.violations.is_empty() { 
-                ComplianceStatus::Compliant 
-            } else { 
-                ComplianceStatus::NonCompliant 
-            }
+        result.standards_status.insert(
+            "GDPR".to_string(),
+            if result.violations.is_empty() {
+                ComplianceStatus::Compliant
+            } else {
+                ComplianceStatus::NonCompliant
+            },
         );
 
         Ok(())
     }
 
-    async fn check_hipaa_compliance(&self, data: &[u8], context: &SecurityContext, config: &HipaaConfig, result: &mut ComplianceResult) -> Result<(), DevDocsError> {
+    async fn check_hipaa_compliance(
+        &self,
+        data: &[u8],
+        context: &SecurityContext,
+        config: &HipaaConfig,
+        result: &mut ComplianceResult,
+    ) -> Result<(), DevDocsError> {
         if !config.enabled {
-            result.standards_status.insert("HIPAA".to_string(), ComplianceStatus::NotApplicable);
+            result
+                .standards_status
+                .insert("HIPAA".to_string(), ComplianceStatus::NotApplicable);
             return Ok(());
         }
 
@@ -720,27 +744,39 @@ impl ComplianceChecker {
         }
 
         result.violations.extend(violations);
-        result.standards_status.insert("HIPAA".to_string(), 
-            if result.violations.is_empty() { 
-                ComplianceStatus::Compliant 
-            } else { 
-                ComplianceStatus::NonCompliant 
-            }
+        result.standards_status.insert(
+            "HIPAA".to_string(),
+            if result.violations.is_empty() {
+                ComplianceStatus::Compliant
+            } else {
+                ComplianceStatus::NonCompliant
+            },
         );
 
         Ok(())
     }
 
-    async fn check_soc2_compliance(&self, _data: &[u8], context: &SecurityContext, config: &Soc2Config, result: &mut ComplianceResult) -> Result<(), DevDocsError> {
+    async fn check_soc2_compliance(
+        &self,
+        _data: &[u8],
+        context: &SecurityContext,
+        config: &Soc2Config,
+        result: &mut ComplianceResult,
+    ) -> Result<(), DevDocsError> {
         if !config.enabled {
-            result.standards_status.insert("SOC2".to_string(), ComplianceStatus::NotApplicable);
+            result
+                .standards_status
+                .insert("SOC2".to_string(), ComplianceStatus::NotApplicable);
             return Ok(());
         }
 
         let mut violations = Vec::new();
 
         // Check security criteria
-        if config.trust_service_criteria.contains(&TrustServiceCriteria::Security) {
+        if config
+            .trust_service_criteria
+            .contains(&TrustServiceCriteria::Security)
+        {
             if !context.requires_audit() {
                 violations.push(SecurityViolation {
                     violation_type: ViolationType::ComplianceViolation,
@@ -753,7 +789,10 @@ impl ComplianceChecker {
         }
 
         // Check confidentiality criteria
-        if config.trust_service_criteria.contains(&TrustServiceCriteria::Confidentiality) {
+        if config
+            .trust_service_criteria
+            .contains(&TrustServiceCriteria::Confidentiality)
+        {
             if !context.requires_encryption() {
                 result.recommendations.push(ComplianceRecommendation {
                     standard: "SOC2".to_string(),
@@ -769,20 +808,29 @@ impl ComplianceChecker {
         }
 
         result.violations.extend(violations);
-        result.standards_status.insert("SOC2".to_string(), 
-            if result.violations.is_empty() { 
-                ComplianceStatus::Compliant 
-            } else { 
-                ComplianceStatus::NonCompliant 
-            }
+        result.standards_status.insert(
+            "SOC2".to_string(),
+            if result.violations.is_empty() {
+                ComplianceStatus::Compliant
+            } else {
+                ComplianceStatus::NonCompliant
+            },
         );
 
         Ok(())
     }
 
-    async fn check_pci_dss_compliance(&self, data: &[u8], context: &SecurityContext, config: &PciDssConfig, result: &mut ComplianceResult) -> Result<(), DevDocsError> {
+    async fn check_pci_dss_compliance(
+        &self,
+        data: &[u8],
+        context: &SecurityContext,
+        config: &PciDssConfig,
+        result: &mut ComplianceResult,
+    ) -> Result<(), DevDocsError> {
         if !config.enabled {
-            result.standards_status.insert("PCI DSS".to_string(), ComplianceStatus::NotApplicable);
+            result
+                .standards_status
+                .insert("PCI DSS".to_string(), ComplianceStatus::NotApplicable);
             return Ok(());
         }
 
@@ -816,12 +864,13 @@ impl ComplianceChecker {
         }
 
         result.violations.extend(violations);
-        result.standards_status.insert("PCI DSS".to_string(), 
-            if result.violations.is_empty() { 
-                ComplianceStatus::Compliant 
-            } else { 
-                ComplianceStatus::NonCompliant 
-            }
+        result.standards_status.insert(
+            "PCI DSS".to_string(),
+            if result.violations.is_empty() {
+                ComplianceStatus::Compliant
+            } else {
+                ComplianceStatus::NonCompliant
+            },
         );
 
         Ok(())
@@ -832,7 +881,9 @@ impl ComplianceChecker {
             return 1.0;
         }
 
-        let compliant_count = result.standards_status.values()
+        let compliant_count = result
+            .standards_status
+            .values()
             .filter(|&status| matches!(status, ComplianceStatus::Compliant))
             .count();
 
@@ -880,22 +931,28 @@ impl ComplianceChecker {
             match standard {
                 ComplianceStandard::Gdpr(config) => {
                     if config.enabled {
-                        report.standards.insert("GDPR".to_string(), StandardReport {
-                            status: ComplianceStatus::Compliant,
-                            score: 0.95,
-                            last_assessment: Utc::now(),
-                            findings: Vec::new(),
-                        });
+                        report.standards.insert(
+                            "GDPR".to_string(),
+                            StandardReport {
+                                status: ComplianceStatus::Compliant,
+                                score: 0.95,
+                                last_assessment: Utc::now(),
+                                findings: Vec::new(),
+                            },
+                        );
                     }
                 }
                 ComplianceStandard::Soc2(config) => {
                     if config.enabled {
-                        report.standards.insert("SOC2".to_string(), StandardReport {
-                            status: ComplianceStatus::Compliant,
-                            score: 0.92,
-                            last_assessment: Utc::now(),
-                            findings: Vec::new(),
-                        });
+                        report.standards.insert(
+                            "SOC2".to_string(),
+                            StandardReport {
+                                status: ComplianceStatus::Compliant,
+                                score: 0.92,
+                                last_assessment: Utc::now(),
+                                findings: Vec::new(),
+                            },
+                        );
                     }
                 }
                 _ => {}
@@ -904,9 +961,8 @@ impl ComplianceChecker {
 
         // Calculate overall score
         if !report.standards.is_empty() {
-            report.overall_score = report.standards.values()
-                .map(|s| s.score)
-                .sum::<f64>() / report.standards.len() as f64;
+            report.overall_score = report.standards.values().map(|s| s.score).sum::<f64>()
+                / report.standards.len() as f64;
         }
 
         Ok(report)
@@ -980,13 +1036,13 @@ mod tests {
     async fn test_compliance_check() {
         let config = ComplianceConfig::default();
         let checker = ComplianceChecker::new(&config).unwrap();
-        
+
         let context = SecurityContext::new(Uuid::new_v4(), "192.168.1.1".to_string())
             .with_security_level(SecurityLevel::Confidential);
-        
+
         let test_data = b"test data";
         let result = checker.check_compliance(test_data, &context).await.unwrap();
-        
+
         assert!(!result.standards_status.is_empty());
         assert!(result.compliance_score >= 0.0 && result.compliance_score <= 1.0);
     }
@@ -995,9 +1051,9 @@ mod tests {
     async fn test_compliance_report_generation() {
         let config = ComplianceConfig::default();
         let checker = ComplianceChecker::new(&config).unwrap();
-        
+
         let report = checker.generate_compliance_report().await.unwrap();
-        
+
         assert!(!report.standards.is_empty());
         assert!(report.overall_score >= 0.0 && report.overall_score <= 1.0);
         assert!(report.next_assessment_date > report.generated_at);
@@ -1007,13 +1063,17 @@ mod tests {
     fn test_data_classification_levels() {
         let config = DataClassificationConfig::default();
         assert_eq!(config.classification_levels.len(), 3);
-        
-        let confidential = config.classification_levels.iter()
+
+        let confidential = config
+            .classification_levels
+            .iter()
             .find(|level| level.level == "Confidential")
             .unwrap();
-        
+
         assert!(!confidential.handling_requirements.is_empty());
-        assert!(confidential.handling_requirements.iter()
+        assert!(confidential
+            .handling_requirements
+            .iter()
             .any(|req| matches!(req.requirement_type, HandlingRequirementType::Encryption)));
     }
 
@@ -1029,7 +1089,7 @@ mod tests {
     fn test_compliance_status_enum() {
         let status = ComplianceStatus::Compliant;
         assert!(matches!(status, ComplianceStatus::Compliant));
-        
+
         let serialized = serde_json::to_string(&status).unwrap();
         let deserialized: ComplianceStatus = serde_json::from_str(&serialized).unwrap();
         assert!(matches!(deserialized, ComplianceStatus::Compliant));

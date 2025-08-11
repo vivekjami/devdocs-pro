@@ -1,5 +1,5 @@
 //! Comprehensive security configuration management
-//! 
+//!
 //! Provides centralized configuration for all security components
 //! with validation, environment variable support, and hot reloading.
 
@@ -232,8 +232,14 @@ impl Default for SecurityHeadersConfig {
             csp_directives: {
                 let mut directives = HashMap::new();
                 directives.insert("default-src".to_string(), "'self'".to_string());
-                directives.insert("script-src".to_string(), "'self' 'unsafe-inline'".to_string());
-                directives.insert("style-src".to_string(), "'self' 'unsafe-inline'".to_string());
+                directives.insert(
+                    "script-src".to_string(),
+                    "'self' 'unsafe-inline'".to_string(),
+                );
+                directives.insert(
+                    "style-src".to_string(),
+                    "'self' 'unsafe-inline'".to_string(),
+                );
                 directives.insert("img-src".to_string(), "'self' data: https:".to_string());
                 directives
             },
@@ -320,16 +326,21 @@ impl SecurityConfigManager {
     /// Load configuration from file
     pub fn load_from_file<P: Into<PathBuf>>(path: P) -> Result<Self, DevDocsError> {
         let path = path.into();
-        let content = std::fs::read_to_string(&path)
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to read config file: {}", e)))?;
+        let content = std::fs::read_to_string(&path).map_err(|e| {
+            DevDocsError::Configuration(format!("Failed to read config file: {}", e))
+        })?;
 
-        let config: MasterSecurityConfig = if path.extension().and_then(|s| s.to_str()) == Some("yaml") || 
-                                                  path.extension().and_then(|s| s.to_str()) == Some("yml") {
-            serde_yaml::from_str(&content)
-                .map_err(|e| DevDocsError::Configuration(format!("Failed to parse YAML config: {}", e)))?
+        let config: MasterSecurityConfig = if path.extension().and_then(|s| s.to_str())
+            == Some("yaml")
+            || path.extension().and_then(|s| s.to_str()) == Some("yml")
+        {
+            serde_yaml::from_str(&content).map_err(|e| {
+                DevDocsError::Configuration(format!("Failed to parse YAML config: {}", e))
+            })?
         } else {
-            serde_json::from_str(&content)
-                .map_err(|e| DevDocsError::Configuration(format!("Failed to parse JSON config: {}", e)))?
+            serde_json::from_str(&content).map_err(|e| {
+                DevDocsError::Configuration(format!("Failed to parse JSON config: {}", e))
+            })?
         };
 
         let mut manager = Self {
@@ -383,28 +394,32 @@ impl SecurityConfigManager {
     pub fn update_config(&mut self, new_config: MasterSecurityConfig) -> Result<(), DevDocsError> {
         // Validate new configuration
         self.validate_config(&new_config)?;
-        
+
         self.config = new_config;
         self.apply_environment_overrides()?;
         self.apply_environment_variables()?;
-        
+
         Ok(())
     }
 
     /// Save configuration to file
     pub fn save_to_file<P: Into<PathBuf>>(&self, path: P) -> Result<(), DevDocsError> {
         let path = path.into();
-        let content = if path.extension().and_then(|s| s.to_str()) == Some("yaml") || 
-                         path.extension().and_then(|s| s.to_str()) == Some("yml") {
-            serde_yaml::to_string(&self.config)
-                .map_err(|e| DevDocsError::Configuration(format!("Failed to serialize YAML config: {}", e)))?
+        let content = if path.extension().and_then(|s| s.to_str()) == Some("yaml")
+            || path.extension().and_then(|s| s.to_str()) == Some("yml")
+        {
+            serde_yaml::to_string(&self.config).map_err(|e| {
+                DevDocsError::Configuration(format!("Failed to serialize YAML config: {}", e))
+            })?
         } else {
-            serde_json::to_string_pretty(&self.config)
-                .map_err(|e| DevDocsError::Configuration(format!("Failed to serialize JSON config: {}", e)))?
+            serde_json::to_string_pretty(&self.config).map_err(|e| {
+                DevDocsError::Configuration(format!("Failed to serialize JSON config: {}", e))
+            })?
         };
 
-        std::fs::write(&path, content)
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to write config file: {}", e)))?;
+        std::fs::write(&path, content).map_err(|e| {
+            DevDocsError::Configuration(format!("Failed to write config file: {}", e))
+        })?;
 
         Ok(())
     }
@@ -416,13 +431,20 @@ impl SecurityConfigManager {
             self.config = new_manager.config;
             Ok(())
         } else {
-            Err(DevDocsError::Configuration("No config file path available for reload".to_string()))
+            Err(DevDocsError::Configuration(
+                "No config file path available for reload".to_string(),
+            ))
         }
     }
 
     /// Apply environment-specific overrides
     fn apply_environment_overrides(&mut self) -> Result<(), DevDocsError> {
-        if let Some(override_config) = self.config.environment_overrides.get(&self.environment).cloned() {
+        if let Some(override_config) = self
+            .config
+            .environment_overrides
+            .get(&self.environment)
+            .cloned()
+        {
             // Apply security mode override
             if let Some(security_mode) = override_config.security_mode {
                 self.config.global.security_mode = security_mode;
@@ -437,7 +459,12 @@ impl SecurityConfigManager {
                     self.config.encryption.algorithm = match algorithm.as_str() {
                         "aes256gcm" => EncryptionAlgorithm::Aes256Gcm,
                         "chacha20poly1305" => EncryptionAlgorithm::ChaCha20Poly1305,
-                        _ => return Err(DevDocsError::Configuration(format!("Unknown encryption algorithm: {}", algorithm))),
+                        _ => {
+                            return Err(DevDocsError::Configuration(format!(
+                                "Unknown encryption algorithm: {}",
+                                algorithm
+                            )))
+                        }
                     };
                 }
                 if let Some(rotation_hours) = enc_override.key_rotation_hours {
@@ -481,42 +508,58 @@ impl SecurityConfigManager {
                 "staging" => SecurityMode::Staging,
                 "production" => SecurityMode::Production,
                 "high_security" => SecurityMode::HighSecurity,
-                _ => return Err(DevDocsError::Configuration(format!("Invalid security mode: {}", mode))),
+                _ => {
+                    return Err(DevDocsError::Configuration(format!(
+                        "Invalid security mode: {}",
+                        mode
+                    )))
+                }
             };
         }
 
         // Encryption settings
         if let Ok(enabled) = std::env::var("ENCRYPTION_ENABLED") {
-            self.config.encryption.enabled = enabled.parse()
-                .map_err(|_| DevDocsError::Configuration("Invalid ENCRYPTION_ENABLED value".to_string()))?;
+            self.config.encryption.enabled = enabled.parse().map_err(|_| {
+                DevDocsError::Configuration("Invalid ENCRYPTION_ENABLED value".to_string())
+            })?;
         }
 
         if let Ok(key_rotation) = std::env::var("ENCRYPTION_KEY_ROTATION_HOURS") {
-            self.config.encryption.key_rotation_hours = key_rotation.parse()
-                .map_err(|_| DevDocsError::Configuration("Invalid ENCRYPTION_KEY_ROTATION_HOURS value".to_string()))?;
+            self.config.encryption.key_rotation_hours = key_rotation.parse().map_err(|_| {
+                DevDocsError::Configuration(
+                    "Invalid ENCRYPTION_KEY_ROTATION_HOURS value".to_string(),
+                )
+            })?;
         }
 
         // Authentication settings
         if let Ok(enabled) = std::env::var("AUTH_ENABLED") {
-            self.config.authentication.enabled = enabled.parse()
-                .map_err(|_| DevDocsError::Configuration("Invalid AUTH_ENABLED value".to_string()))?;
+            self.config.authentication.enabled = enabled.parse().map_err(|_| {
+                DevDocsError::Configuration("Invalid AUTH_ENABLED value".to_string())
+            })?;
         }
 
         if let Ok(token_expiry) = std::env::var("AUTH_TOKEN_EXPIRY_SECONDS") {
-            self.config.authentication.token_expiry_seconds = token_expiry.parse()
-                .map_err(|_| DevDocsError::Configuration("Invalid AUTH_TOKEN_EXPIRY_SECONDS value".to_string()))?;
+            self.config.authentication.token_expiry_seconds =
+                token_expiry.parse().map_err(|_| {
+                    DevDocsError::Configuration(
+                        "Invalid AUTH_TOKEN_EXPIRY_SECONDS value".to_string(),
+                    )
+                })?;
         }
 
         // Rate limiting settings
         if let Ok(enabled) = std::env::var("RATE_LIMITING_ENABLED") {
-            self.config.rate_limiting.enabled = enabled.parse()
-                .map_err(|_| DevDocsError::Configuration("Invalid RATE_LIMITING_ENABLED value".to_string()))?;
+            self.config.rate_limiting.enabled = enabled.parse().map_err(|_| {
+                DevDocsError::Configuration("Invalid RATE_LIMITING_ENABLED value".to_string())
+            })?;
         }
 
         // Monitoring settings
         if let Ok(enabled) = std::env::var("MONITORING_ENABLED") {
-            self.config.monitoring.enabled = enabled.parse()
-                .map_err(|_| DevDocsError::Configuration("Invalid MONITORING_ENABLED value".to_string()))?;
+            self.config.monitoring.enabled = enabled.parse().map_err(|_| {
+                DevDocsError::Configuration("Invalid MONITORING_ENABLED value".to_string())
+            })?;
         }
 
         Ok(())
@@ -532,43 +575,57 @@ impl SecurityConfigManager {
         // Validate encryption configuration
         if config.encryption.enabled {
             if config.encryption.key_rotation_hours == 0 {
-                return Err(DevDocsError::Configuration("Key rotation hours must be greater than 0".to_string()));
+                return Err(DevDocsError::Configuration(
+                    "Key rotation hours must be greater than 0".to_string(),
+                ));
             }
         }
 
         // Validate authentication configuration
         if config.authentication.enabled {
             if config.authentication.token_expiry_seconds == 0 {
-                return Err(DevDocsError::Configuration("Token expiry must be greater than 0".to_string()));
+                return Err(DevDocsError::Configuration(
+                    "Token expiry must be greater than 0".to_string(),
+                ));
             }
             if config.authentication.jwt_secret.is_empty() {
-                return Err(DevDocsError::Configuration("JWT secret cannot be empty".to_string()));
+                return Err(DevDocsError::Configuration(
+                    "JWT secret cannot be empty".to_string(),
+                ));
             }
         }
 
         // Validate rate limiting configuration
         if config.rate_limiting.enabled {
             if config.rate_limiting.global.requests_per_second == 0 {
-                return Err(DevDocsError::Configuration("Global requests per second must be greater than 0".to_string()));
+                return Err(DevDocsError::Configuration(
+                    "Global requests per second must be greater than 0".to_string(),
+                ));
             }
         }
 
         // Validate audit configuration
         if config.audit.enabled {
             if config.audit.retention.retention_days == 0 {
-                return Err(DevDocsError::Configuration("Audit retention days must be greater than 0".to_string()));
+                return Err(DevDocsError::Configuration(
+                    "Audit retention days must be greater than 0".to_string(),
+                ));
             }
         }
 
         // Validate compliance configuration
         if config.compliance.enabled && config.compliance.standards.is_empty() {
-            return Err(DevDocsError::Configuration("At least one compliance standard must be specified".to_string()));
+            return Err(DevDocsError::Configuration(
+                "At least one compliance standard must be specified".to_string(),
+            ));
         }
 
         // Validate monitoring configuration
         if config.monitoring.enabled {
             if config.monitoring.real_time.buffer_size == 0 {
-                return Err(DevDocsError::Configuration("Monitoring buffer size must be greater than 0".to_string()));
+                return Err(DevDocsError::Configuration(
+                    "Monitoring buffer size must be greater than 0".to_string(),
+                ));
             }
         }
 
@@ -620,7 +677,10 @@ mod tests {
     #[test]
     fn test_master_security_config_default() {
         let config = MasterSecurityConfig::default();
-        assert!(matches!(config.global.security_mode, SecurityMode::Production));
+        assert!(matches!(
+            config.global.security_mode,
+            SecurityMode::Production
+        ));
         assert!(config.encryption.enabled);
         assert!(config.authentication.enabled);
     }
@@ -628,7 +688,10 @@ mod tests {
     #[test]
     fn test_security_config_manager_new() {
         let manager = SecurityConfigManager::new();
-        assert!(matches!(manager.config.global.security_mode, SecurityMode::Production));
+        assert!(matches!(
+            manager.config.global.security_mode,
+            SecurityMode::Production
+        ));
     }
 
     #[test]
@@ -642,7 +705,7 @@ mod tests {
     fn test_invalid_config_validation() {
         let mut config = MasterSecurityConfig::default();
         config.encryption.key_rotation_hours = 0; // Invalid
-        
+
         let manager = SecurityConfigManager::new();
         let result = manager.validate_config(&config);
         assert!(result.is_err());
@@ -652,11 +715,11 @@ mod tests {
     fn test_config_file_operations() {
         let config = MasterSecurityConfig::default();
         let temp_file = NamedTempFile::new().unwrap();
-        
+
         let manager = SecurityConfigManager::new();
         let result = manager.save_to_file(temp_file.path());
         assert!(result.is_ok());
-        
+
         let loaded_manager = SecurityConfigManager::load_from_file(temp_file.path());
         assert!(loaded_manager.is_ok());
     }
@@ -665,11 +728,14 @@ mod tests {
     fn test_environment_variable_override() {
         std::env::set_var("SECURITY_MODE", "development");
         std::env::set_var("ENCRYPTION_ENABLED", "false");
-        
+
         let manager = SecurityConfigManager::load_from_env().unwrap();
-        assert!(matches!(manager.config.global.security_mode, SecurityMode::Development));
+        assert!(matches!(
+            manager.config.global.security_mode,
+            SecurityMode::Development
+        ));
         assert!(!manager.config.encryption.enabled);
-        
+
         // Cleanup
         std::env::remove_var("SECURITY_MODE");
         std::env::remove_var("ENCRYPTION_ENABLED");
@@ -678,12 +744,12 @@ mod tests {
     #[test]
     fn test_feature_enablement() {
         let mut manager = SecurityConfigManager::new();
-        
+
         // Production mode - all features enabled
         manager.config.global.security_mode = SecurityMode::Production;
         assert!(manager.is_feature_enabled(SecurityFeature::StrictValidation));
         assert!(manager.is_feature_enabled(SecurityFeature::EncryptionAtRest));
-        
+
         // Development mode - some features disabled
         manager.config.global.security_mode = SecurityMode::Development;
         assert!(!manager.is_feature_enabled(SecurityFeature::StrictValidation));
@@ -693,13 +759,13 @@ mod tests {
     #[test]
     fn test_component_config_getters() {
         let manager = SecurityConfigManager::new();
-        
+
         let encryption_config = manager.get_encryption_config();
         assert!(encryption_config.enabled);
-        
+
         let auth_config = manager.get_auth_config();
         assert!(auth_config.enabled);
-        
+
         let audit_config = manager.get_audit_config();
         assert!(audit_config.enabled);
     }

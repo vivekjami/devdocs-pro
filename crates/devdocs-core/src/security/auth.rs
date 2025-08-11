@@ -1,13 +1,13 @@
 //! Enterprise authentication and authorization system
-//! 
+//!
 //! Supports JWT tokens, API keys, OAuth2, SAML, and multi-tenant access control
 
 use crate::errors::DevDocsError;
 use chrono::{DateTime, Utc};
-use jwt::{Header, Token, VerifyWithKey, SignWithKey};
 use hmac::{Hmac, Mac};
-use sha2::Sha256;
+use jwt::{Header, SignWithKey, Token, VerifyWithKey};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use std::collections::{HashMap, HashSet};
 
 /// Authentication configuration
@@ -126,14 +126,14 @@ pub enum TokenType {
 /// JWT claims structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtClaims {
-    pub sub: String,           // Subject (user ID)
-    pub org: Option<String>,   // Organization ID
+    pub sub: String,         // Subject (user ID)
+    pub org: Option<String>, // Organization ID
     pub permissions: Vec<String>,
     pub roles: Vec<String>,
-    pub iat: i64,             // Issued at
-    pub exp: i64,             // Expiration
-    pub aud: String,          // Audience
-    pub iss: String,          // Issuer
+    pub iat: i64,    // Issued at
+    pub exp: i64,    // Expiration
+    pub aud: String, // Audience
+    pub iss: String, // Issuer
 }
 
 /// API key information
@@ -198,7 +198,7 @@ impl Authenticator {
     pub fn new(config: &AuthConfig) -> Result<Self, DevDocsError> {
         let jwt_key = Hmac::new_from_slice(config.jwt_secret.as_bytes())
             .map_err(|e| DevDocsError::Configuration(format!("Invalid JWT secret: {}", e)))?;
-        
+
         Ok(Self {
             config: config.clone(),
             jwt_key,
@@ -254,17 +254,23 @@ impl Authenticator {
         // Verify user exists and is active
         if let Some(user) = self.users.get(&claims.sub) {
             if !user.is_active {
-                return Err(DevDocsError::Unauthorized("User account disabled".to_string()));
+                return Err(DevDocsError::Unauthorized(
+                    "User account disabled".to_string(),
+                ));
             }
 
             // Verify organization if specified
             if let Some(org_id) = &claims.org {
                 if let Some(org) = self.organizations.get(org_id) {
                     if !org.is_active {
-                        return Err(DevDocsError::Unauthorized("Organization disabled".to_string()));
+                        return Err(DevDocsError::Unauthorized(
+                            "Organization disabled".to_string(),
+                        ));
                     }
                 } else {
-                    return Err(DevDocsError::Unauthorized("Organization not found".to_string()));
+                    return Err(DevDocsError::Unauthorized(
+                        "Organization not found".to_string(),
+                    ));
                 }
             }
 
@@ -286,9 +292,11 @@ impl Authenticator {
     pub async fn validate_api_key(&self, key: &str) -> Result<AuthResult, DevDocsError> {
         // Hash the provided key to compare with stored hash
         let key_hash = self.hash_api_key(key);
-        
+
         // Find API key by hash
-        let api_key = self.api_keys.values()
+        let api_key = self
+            .api_keys
+            .values()
             .find(|k| k.key_hash == key_hash && k.is_active)
             .ok_or_else(|| DevDocsError::Unauthorized("Invalid API key".to_string()))?;
 
@@ -302,7 +310,9 @@ impl Authenticator {
         // Verify user exists and is active
         if let Some(user) = self.users.get(&api_key.user_id) {
             if !user.is_active {
-                return Err(DevDocsError::Unauthorized("User account disabled".to_string()));
+                return Err(DevDocsError::Unauthorized(
+                    "User account disabled".to_string(),
+                ));
             }
 
             Ok(AuthResult {
@@ -344,7 +354,12 @@ impl Authenticator {
     }
 
     /// Generate API key for user
-    pub fn generate_api_key(&mut self, user_id: &str, organization_id: Option<String>, permissions: Vec<String>) -> Result<String, DevDocsError> {
+    pub fn generate_api_key(
+        &mut self,
+        user_id: &str,
+        organization_id: Option<String>,
+        permissions: Vec<String>,
+    ) -> Result<String, DevDocsError> {
         let key_id = uuid::Uuid::new_v4().to_string();
         let raw_key = format!("dk_{}", uuid::Uuid::new_v4().simple());
         let key_hash = self.hash_api_key(&raw_key);
@@ -367,9 +382,14 @@ impl Authenticator {
     }
 
     /// Create new user
-    pub fn create_user(&mut self, email: String, organization_id: Option<String>, roles: Vec<String>) -> Result<User, DevDocsError> {
+    pub fn create_user(
+        &mut self,
+        email: String,
+        organization_id: Option<String>,
+        roles: Vec<String>,
+    ) -> Result<User, DevDocsError> {
         let user_id = uuid::Uuid::new_v4().to_string();
-        
+
         // Determine permissions based on roles
         let permissions = self.resolve_permissions_from_roles(&roles);
 
@@ -390,7 +410,11 @@ impl Authenticator {
     }
 
     /// Create new organization
-    pub fn create_organization(&mut self, name: String, plan: String) -> Result<Organization, DevDocsError> {
+    pub fn create_organization(
+        &mut self,
+        name: String,
+        plan: String,
+    ) -> Result<Organization, DevDocsError> {
         let org_id = uuid::Uuid::new_v4().to_string();
 
         let settings = OrganizationSettings {
@@ -432,8 +456,8 @@ impl Authenticator {
     /// Check if user has specific permission
     pub fn has_permission(&self, user_id: &str, permission: &str) -> bool {
         if let Some(user) = self.users.get(user_id) {
-            user.permissions.contains(&permission.to_string()) ||
-            user.roles.contains(&"admin".to_string()) // Admins have all permissions
+            user.permissions.contains(&permission.to_string())
+                || user.roles.contains(&"admin".to_string()) // Admins have all permissions
         } else {
             false
         }
@@ -476,7 +500,7 @@ impl Authenticator {
     }
 
     fn hash_api_key(&self, key: &str) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(key.as_bytes());
         format!("{:x}", hasher.finalize())
@@ -489,7 +513,12 @@ impl Authenticator {
             match role.as_str() {
                 "admin" => {
                     permissions.extend(vec![
-                        "read", "write", "delete", "admin", "manage_users", "manage_org"
+                        "read",
+                        "write",
+                        "delete",
+                        "admin",
+                        "manage_users",
+                        "manage_org",
                     ]);
                 }
                 "editor" => {
@@ -503,7 +532,13 @@ impl Authenticator {
                 }
                 _ => {
                     // Custom role - use default permissions
-                    permissions.extend(self.config.multi_tenant.default_permissions.iter().map(|s| s.as_str()));
+                    permissions.extend(
+                        self.config
+                            .multi_tenant
+                            .default_permissions
+                            .iter()
+                            .map(|s| s.as_str()),
+                    );
                 }
             }
         }
@@ -562,13 +597,15 @@ mod tests {
     fn test_user_creation() {
         let config = AuthConfig::default();
         let mut authenticator = Authenticator::new(&config).unwrap();
-        
-        let user = authenticator.create_user(
-            "test@example.com".to_string(),
-            None,
-            vec!["viewer".to_string()],
-        ).unwrap();
-        
+
+        let user = authenticator
+            .create_user(
+                "test@example.com".to_string(),
+                None,
+                vec!["viewer".to_string()],
+            )
+            .unwrap();
+
         assert_eq!(user.email, "test@example.com");
         assert!(user.permissions.contains(&"read".to_string()));
         assert!(user.is_active);
@@ -578,12 +615,11 @@ mod tests {
     fn test_organization_creation() {
         let config = AuthConfig::default();
         let mut authenticator = Authenticator::new(&config).unwrap();
-        
-        let org = authenticator.create_organization(
-            "Test Org".to_string(),
-            "pro".to_string(),
-        ).unwrap();
-        
+
+        let org = authenticator
+            .create_organization("Test Org".to_string(), "pro".to_string())
+            .unwrap();
+
         assert_eq!(org.name, "Test Org");
         assert_eq!(org.plan, "pro");
         assert_eq!(org.settings.max_users, Some(50));
@@ -594,19 +630,23 @@ mod tests {
     fn test_api_key_generation() {
         let config = AuthConfig::default();
         let mut authenticator = Authenticator::new(&config).unwrap();
-        
-        let user = authenticator.create_user(
-            "test@example.com".to_string(),
-            None,
-            vec!["api_user".to_string()],
-        ).unwrap();
-        
-        let api_key = authenticator.generate_api_key(
-            &user.id,
-            None,
-            vec!["read".to_string(), "write".to_string()],
-        ).unwrap();
-        
+
+        let user = authenticator
+            .create_user(
+                "test@example.com".to_string(),
+                None,
+                vec!["api_user".to_string()],
+            )
+            .unwrap();
+
+        let api_key = authenticator
+            .generate_api_key(
+                &user.id,
+                None,
+                vec!["read".to_string(), "write".to_string()],
+            )
+            .unwrap();
+
         assert!(api_key.starts_with("dk_"));
         assert_eq!(authenticator.api_keys.len(), 1);
     }
@@ -615,16 +655,18 @@ mod tests {
     fn test_jwt_token_generation() {
         let config = AuthConfig::default();
         let mut authenticator = Authenticator::new(&config).unwrap();
-        
-        let user = authenticator.create_user(
-            "test@example.com".to_string(),
-            None,
-            vec!["viewer".to_string()],
-        ).unwrap();
-        
+
+        let user = authenticator
+            .create_user(
+                "test@example.com".to_string(),
+                None,
+                vec!["viewer".to_string()],
+            )
+            .unwrap();
+
         let token = authenticator.generate_jwt_token(&user);
         assert!(token.is_ok());
-        
+
         let token_str = token.unwrap();
         assert!(!token_str.is_empty());
         assert!(token_str.contains('.'));
@@ -634,13 +676,15 @@ mod tests {
     fn test_permission_resolution() {
         let config = AuthConfig::default();
         let authenticator = Authenticator::new(&config).unwrap();
-        
-        let admin_permissions = authenticator.resolve_permissions_from_roles(&vec!["admin".to_string()]);
+
+        let admin_permissions =
+            authenticator.resolve_permissions_from_roles(&vec!["admin".to_string()]);
         assert!(admin_permissions.contains(&"read".to_string()));
         assert!(admin_permissions.contains(&"write".to_string()));
         assert!(admin_permissions.contains(&"admin".to_string()));
-        
-        let viewer_permissions = authenticator.resolve_permissions_from_roles(&vec!["viewer".to_string()]);
+
+        let viewer_permissions =
+            authenticator.resolve_permissions_from_roles(&vec!["viewer".to_string()]);
         assert!(viewer_permissions.contains(&"read".to_string()));
         assert!(!viewer_permissions.contains(&"write".to_string()));
     }
@@ -649,23 +693,23 @@ mod tests {
     fn test_api_key_revocation() {
         let config = AuthConfig::default();
         let mut authenticator = Authenticator::new(&config).unwrap();
-        
-        let user = authenticator.create_user(
-            "test@example.com".to_string(),
-            None,
-            vec!["api_user".to_string()],
-        ).unwrap();
-        
-        let _api_key = authenticator.generate_api_key(
-            &user.id,
-            None,
-            vec!["read".to_string()],
-        ).unwrap();
-        
+
+        let user = authenticator
+            .create_user(
+                "test@example.com".to_string(),
+                None,
+                vec!["api_user".to_string()],
+            )
+            .unwrap();
+
+        let _api_key = authenticator
+            .generate_api_key(&user.id, None, vec!["read".to_string()])
+            .unwrap();
+
         let key_id = authenticator.api_keys.keys().next().unwrap().clone();
         let result = authenticator.revoke_api_key(&key_id);
         assert!(result.is_ok());
-        
+
         let api_key = authenticator.api_keys.get(&key_id).unwrap();
         assert!(!api_key.is_active);
     }
@@ -674,24 +718,27 @@ mod tests {
     fn test_user_stats() {
         let config = AuthConfig::default();
         let mut authenticator = Authenticator::new(&config).unwrap();
-        
-        let _user1 = authenticator.create_user(
-            "user1@example.com".to_string(),
-            None,
-            vec!["viewer".to_string()],
-        ).unwrap();
-        
-        let _user2 = authenticator.create_user(
-            "user2@example.com".to_string(),
-            None,
-            vec!["editor".to_string()],
-        ).unwrap();
-        
-        let _org = authenticator.create_organization(
-            "Test Org".to_string(),
-            "pro".to_string(),
-        ).unwrap();
-        
+
+        let _user1 = authenticator
+            .create_user(
+                "user1@example.com".to_string(),
+                None,
+                vec!["viewer".to_string()],
+            )
+            .unwrap();
+
+        let _user2 = authenticator
+            .create_user(
+                "user2@example.com".to_string(),
+                None,
+                vec!["editor".to_string()],
+            )
+            .unwrap();
+
+        let _org = authenticator
+            .create_organization("Test Org".to_string(), "pro".to_string())
+            .unwrap();
+
         let stats = authenticator.get_user_stats();
         assert_eq!(stats.total_users, 2);
         assert_eq!(stats.active_users, 2);

@@ -1,5 +1,5 @@
 //! Comprehensive audit logging and compliance system
-//! 
+//!
 //! Provides tamper-evident audit trails, compliance reporting,
 //! and security event monitoring.
 
@@ -135,21 +135,21 @@ pub enum AuditEventType {
     TokenGenerated,
     TokenRevoked,
     PasswordChanged,
-    
+
     // Authorization events
     AccessGranted,
     AccessDenied,
     PermissionChanged,
     RoleAssigned,
     RoleRevoked,
-    
+
     // Data access events
     DataRead,
     DataWrite,
     DataDelete,
     DataExport,
     DataImport,
-    
+
     // Configuration events
     ConfigurationChanged,
     UserCreated,
@@ -157,20 +157,20 @@ pub enum AuditEventType {
     UserModified,
     OrganizationCreated,
     OrganizationModified,
-    
+
     // Security events
     SecurityViolation,
     PiiDetected,
     EncryptionKeyRotated,
     SuspiciousActivity,
     RateLimitExceeded,
-    
+
     // System events
     SystemStartup,
     SystemShutdown,
     BackupCreated,
     BackupRestored,
-    
+
     // Compliance events
     ComplianceViolation,
     AuditLogAccessed,
@@ -304,16 +304,14 @@ pub struct IntegrityVerifier {
 impl AuditLogger {
     pub fn new(config: &AuditConfig) -> Result<Self, DevDocsError> {
         let storage = match config.storage.backend {
-            AuditStorageBackend::FileSystem => {
-                FileSystemAuditStorage::new(
-                    &config.storage.connection_string,
-                    config.storage.encrypt_at_rest,
-                    config.storage.enable_compression,
-                )?
-            }
+            AuditStorageBackend::FileSystem => FileSystemAuditStorage::new(
+                &config.storage.connection_string,
+                config.storage.encrypt_at_rest,
+                config.storage.enable_compression,
+            )?,
             _ => {
                 return Err(DevDocsError::Configuration(
-                    "Unsupported audit storage backend".to_string()
+                    "Unsupported audit storage backend".to_string(),
                 ));
             }
         };
@@ -356,7 +354,11 @@ impl AuditLogger {
     }
 
     /// Log data access event
-    pub async fn log_data_access(&mut self, context: &SecurityContext, data_size: usize) -> Result<(), DevDocsError> {
+    pub async fn log_data_access(
+        &mut self,
+        context: &SecurityContext,
+        data_size: usize,
+    ) -> Result<(), DevDocsError> {
         let event = AuditEvent {
             id: Uuid::new_v4(),
             event_type: AuditEventType::DataRead,
@@ -373,8 +375,14 @@ impl AuditLogger {
             result: AuditResult::Success,
             details: {
                 let mut details = HashMap::new();
-                details.insert("data_size".to_string(), serde_json::Value::Number(data_size.into()));
-                details.insert("security_level".to_string(), serde_json::Value::String(format!("{:?}", context.security_level)));
+                details.insert(
+                    "data_size".to_string(),
+                    serde_json::Value::Number(data_size.into()),
+                );
+                details.insert(
+                    "security_level".to_string(),
+                    serde_json::Value::String(format!("{:?}", context.security_level)),
+                );
                 details
             },
             compliance_tags: Vec::new(),
@@ -385,11 +393,25 @@ impl AuditLogger {
     }
 
     /// Log authentication event
-    pub async fn log_authentication(&mut self, user_id: &str, ip_address: &str, success: bool, details: HashMap<String, serde_json::Value>) -> Result<(), DevDocsError> {
+    pub async fn log_authentication(
+        &mut self,
+        user_id: &str,
+        ip_address: &str,
+        success: bool,
+        details: HashMap<String, serde_json::Value>,
+    ) -> Result<(), DevDocsError> {
         let event = AuditEvent {
             id: Uuid::new_v4(),
-            event_type: if success { AuditEventType::LoginSuccess } else { AuditEventType::LoginFailure },
-            severity: if success { AuditSeverity::Info } else { AuditSeverity::Warning },
+            event_type: if success {
+                AuditEventType::LoginSuccess
+            } else {
+                AuditEventType::LoginFailure
+            },
+            severity: if success {
+                AuditSeverity::Info
+            } else {
+                AuditSeverity::Warning
+            },
             timestamp: Utc::now(),
             user_id: Some(user_id.to_string()),
             organization_id: None,
@@ -399,7 +421,11 @@ impl AuditLogger {
             session_id: None,
             resource: None,
             action: "authentication".to_string(),
-            result: if success { AuditResult::Success } else { AuditResult::Failure },
+            result: if success {
+                AuditResult::Success
+            } else {
+                AuditResult::Failure
+            },
             details,
             compliance_tags: Vec::new(),
             integrity_hash: None,
@@ -409,7 +435,12 @@ impl AuditLogger {
     }
 
     /// Log security violation
-    pub async fn log_security_violation(&mut self, context: &SecurityContext, violation_type: &str, description: &str) -> Result<(), DevDocsError> {
+    pub async fn log_security_violation(
+        &mut self,
+        context: &SecurityContext,
+        violation_type: &str,
+        description: &str,
+    ) -> Result<(), DevDocsError> {
         let event = AuditEvent {
             id: Uuid::new_v4(),
             event_type: AuditEventType::SecurityViolation,
@@ -426,8 +457,14 @@ impl AuditLogger {
             result: AuditResult::Blocked,
             details: {
                 let mut details = HashMap::new();
-                details.insert("violation_type".to_string(), serde_json::Value::String(violation_type.to_string()));
-                details.insert("description".to_string(), serde_json::Value::String(description.to_string()));
+                details.insert(
+                    "violation_type".to_string(),
+                    serde_json::Value::String(violation_type.to_string()),
+                );
+                details.insert(
+                    "description".to_string(),
+                    serde_json::Value::String(description.to_string()),
+                );
                 details
             },
             compliance_tags: Vec::new(),
@@ -443,14 +480,19 @@ impl AuditLogger {
     }
 
     /// Get audit statistics
-    pub async fn get_statistics(&self, query: &AuditQuery) -> Result<AuditStatistics, DevDocsError> {
+    pub async fn get_statistics(
+        &self,
+        query: &AuditQuery,
+    ) -> Result<AuditStatistics, DevDocsError> {
         self.storage.get_statistics(query).await
     }
 
     /// Cleanup old audit events
     pub async fn cleanup_old_events(&mut self) -> Result<u64, DevDocsError> {
         if self.config.retention.auto_cleanup {
-            self.storage.cleanup_old_events(self.config.retention.retention_days).await
+            self.storage
+                .cleanup_old_events(self.config.retention.retention_days)
+                .await
         } else {
             Ok(0)
         }
@@ -460,7 +502,7 @@ impl AuditLogger {
     pub async fn verify_integrity(&self, events: &[AuditEvent]) -> Result<Vec<Uuid>, DevDocsError> {
         if let Some(verifier) = &self.integrity_verifier {
             let mut corrupted_events = Vec::new();
-            
+
             for event in events {
                 if let Some(stored_hash) = &event.integrity_hash {
                     let calculated_hash = verifier.calculate_hash(event)?;
@@ -469,7 +511,7 @@ impl AuditLogger {
                     }
                 }
             }
-            
+
             Ok(corrupted_events)
         } else {
             Ok(Vec::new())
@@ -492,20 +534,27 @@ impl AuditLogger {
             match standard {
                 ComplianceStandard::Soc2 => {
                     // SOC 2 requires logging of all access and changes
-                    if matches!(event.event_type, 
-                        AuditEventType::DataRead | AuditEventType::DataWrite | 
-                        AuditEventType::DataDelete | AuditEventType::ConfigurationChanged |
-                        AuditEventType::LoginSuccess | AuditEventType::LoginFailure
+                    if matches!(
+                        event.event_type,
+                        AuditEventType::DataRead
+                            | AuditEventType::DataWrite
+                            | AuditEventType::DataDelete
+                            | AuditEventType::ConfigurationChanged
+                            | AuditEventType::LoginSuccess
+                            | AuditEventType::LoginFailure
                     ) {
                         tags.push(standard.clone());
                     }
                 }
                 ComplianceStandard::Gdpr => {
                     // GDPR requires logging of personal data access
-                    if matches!(event.event_type,
-                        AuditEventType::DataRead | AuditEventType::DataWrite |
-                        AuditEventType::DataDelete | AuditEventType::DataExport |
-                        AuditEventType::PiiDetected
+                    if matches!(
+                        event.event_type,
+                        AuditEventType::DataRead
+                            | AuditEventType::DataWrite
+                            | AuditEventType::DataDelete
+                            | AuditEventType::DataExport
+                            | AuditEventType::PiiDetected
                     ) {
                         tags.push(standard.clone());
                     }
@@ -523,10 +572,15 @@ impl AuditLogger {
 }
 
 impl FileSystemAuditStorage {
-    pub fn new(base_path: &str, encrypt_at_rest: bool, enable_compression: bool) -> Result<Self, DevDocsError> {
+    pub fn new(
+        base_path: &str,
+        encrypt_at_rest: bool,
+        enable_compression: bool,
+    ) -> Result<Self, DevDocsError> {
         let path = std::path::PathBuf::from(base_path);
-        std::fs::create_dir_all(&path)
-            .map_err(|e| DevDocsError::Storage(format!("Failed to create audit log directory: {}", e)))?;
+        std::fs::create_dir_all(&path).map_err(|e| {
+            DevDocsError::Storage(format!("Failed to create audit log directory: {}", e))
+        })?;
 
         Ok(Self {
             base_path: path,
@@ -536,7 +590,8 @@ impl FileSystemAuditStorage {
     }
 
     fn get_log_file_path(&self, date: &DateTime<Utc>) -> std::path::PathBuf {
-        self.base_path.join(format!("audit_{}.jsonl", date.format("%Y-%m-%d")))
+        self.base_path
+            .join(format!("audit_{}.jsonl", date.format("%Y-%m-%d")))
     }
 }
 
@@ -544,8 +599,8 @@ impl FileSystemAuditStorage {
 impl AuditStorage for FileSystemAuditStorage {
     async fn store_event(&mut self, event: &AuditEvent) -> Result<(), DevDocsError> {
         let log_file = self.get_log_file_path(&event.timestamp);
-        let event_json = serde_json::to_string(event)
-            .map_err(|e| DevDocsError::Serialization(e))?;
+        let event_json =
+            serde_json::to_string(event).map_err(|e| DevDocsError::Serialization(e))?;
 
         let mut content = event_json + "\n";
 
@@ -555,9 +610,11 @@ impl AuditStorage for FileSystemAuditStorage {
             use std::io::Write;
 
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-            encoder.write_all(content.as_bytes())
+            encoder
+                .write_all(content.as_bytes())
                 .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?;
-            encoder.finish()
+            encoder
+                .finish()
                 .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?
         } else {
             content.as_bytes().to_vec()
@@ -586,29 +643,35 @@ impl AuditStorage for FileSystemAuditStorage {
     async fn query_events(&self, query: &AuditQuery) -> Result<Vec<AuditEvent>, DevDocsError> {
         // Simple implementation - in production would use proper indexing
         let mut events = Vec::new();
-        let mut entries = tokio::fs::read_dir(&self.base_path).await
+        let mut entries = tokio::fs::read_dir(&self.base_path)
+            .await
             .map_err(|e| DevDocsError::Storage(format!("Failed to read audit directory: {}", e)))?;
 
-        while let Some(entry) = entries.next_entry().await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))? {
-            
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))?
+        {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.starts_with("audit_") && file_name.ends_with(".jsonl") {
-                    let file_data = tokio::fs::read(entry.path()).await
-                        .map_err(|e| DevDocsError::Storage(format!("Failed to read audit file: {}", e)))?;
-                    
+                    let file_data = tokio::fs::read(entry.path()).await.map_err(|e| {
+                        DevDocsError::Storage(format!("Failed to read audit file: {}", e))
+                    })?;
+
                     let content = if self.enable_compression {
                         use flate2::read::GzDecoder;
                         use std::io::Read;
-                        
+
                         let mut decoder = GzDecoder::new(&file_data[..]);
                         let mut decompressed = String::new();
-                        decoder.read_to_string(&mut decompressed)
-                            .map_err(|e| DevDocsError::Storage(format!("Failed to decompress audit file: {}", e)))?;
+                        decoder.read_to_string(&mut decompressed).map_err(|e| {
+                            DevDocsError::Storage(format!("Failed to decompress audit file: {}", e))
+                        })?;
                         decompressed
                     } else {
-                        String::from_utf8(file_data)
-                            .map_err(|e| DevDocsError::Storage(format!("Failed to read audit file: {}", e)))?
+                        String::from_utf8(file_data).map_err(|e| {
+                            DevDocsError::Storage(format!("Failed to read audit file: {}", e))
+                        })?
                     };
 
                     for line in content.lines() {
@@ -643,7 +706,7 @@ impl AuditStorage for FileSystemAuditStorage {
 
     async fn get_statistics(&self, query: &AuditQuery) -> Result<AuditStatistics, DevDocsError> {
         let events = self.query_events(query).await?;
-        
+
         let mut stats = AuditStatistics {
             total_events: events.len() as u64,
             events_by_type: HashMap::new(),
@@ -666,7 +729,10 @@ impl AuditStorage for FileSystemAuditStorage {
             for event in &events {
                 *stats.events_by_type.entry(event.event_type).or_insert(0) += 1;
                 *stats.events_by_severity.entry(event.severity).or_insert(0) += 1;
-                *stats.events_by_result.entry(event.result.clone()).or_insert(0) += 1;
+                *stats
+                    .events_by_result
+                    .entry(event.result.clone())
+                    .or_insert(0) += 1;
 
                 if let Some(user_id) = &event.user_id {
                     unique_users.insert(user_id.clone());
@@ -696,21 +762,33 @@ impl AuditStorage for FileSystemAuditStorage {
         let cutoff_date = Utc::now() - chrono::Duration::days(retention_days as i64);
         let mut deleted_count = 0u64;
 
-        let mut entries = tokio::fs::read_dir(&self.base_path).await
+        let mut entries = tokio::fs::read_dir(&self.base_path)
+            .await
             .map_err(|e| DevDocsError::Storage(format!("Failed to read audit directory: {}", e)))?;
 
-        while let Some(entry) = entries.next_entry().await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))? {
-            
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))?
+        {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.starts_with("audit_") && file_name.ends_with(".jsonl") {
                     // Extract date from filename
-                    if let Some(date_str) = file_name.strip_prefix("audit_").and_then(|s| s.strip_suffix(".jsonl")) {
-                        if let Ok(file_date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+                    if let Some(date_str) = file_name
+                        .strip_prefix("audit_")
+                        .and_then(|s| s.strip_suffix(".jsonl"))
+                    {
+                        if let Ok(file_date) =
+                            chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+                        {
                             let file_datetime = file_date.and_hms_opt(0, 0, 0).unwrap().and_utc();
                             if file_datetime < cutoff_date {
-                                tokio::fs::remove_file(entry.path()).await
-                                    .map_err(|e| DevDocsError::Storage(format!("Failed to delete old audit file: {}", e)))?;
+                                tokio::fs::remove_file(entry.path()).await.map_err(|e| {
+                                    DevDocsError::Storage(format!(
+                                        "Failed to delete old audit file: {}",
+                                        e
+                                    ))
+                                })?;
                                 deleted_count += 1;
                             }
                         }
@@ -721,7 +799,6 @@ impl AuditStorage for FileSystemAuditStorage {
 
         Ok(deleted_count)
     }
-
 }
 
 impl FileSystemAuditStorage {
@@ -777,8 +854,9 @@ impl IntegrityVerifier {
         let mut secret_key = vec![0u8; 32];
         use ring::rand::{SecureRandom, SystemRandom};
         let rng = SystemRandom::new();
-        rng.fill(&mut secret_key)
-            .map_err(|e| DevDocsError::Encryption(format!("Failed to generate integrity key: {}", e)))?;
+        rng.fill(&mut secret_key).map_err(|e| {
+            DevDocsError::Encryption(format!("Failed to generate integrity key: {}", e))
+        })?;
 
         Ok(Self { secret_key })
     }
@@ -791,15 +869,15 @@ impl IntegrityVerifier {
         let mut event_for_hash = event.clone();
         event_for_hash.integrity_hash = None;
 
-        let event_json = serde_json::to_string(&event_for_hash)
-            .map_err(|e| DevDocsError::Serialization(e))?;
+        let event_json =
+            serde_json::to_string(&event_for_hash).map_err(|e| DevDocsError::Serialization(e))?;
 
         let mut mac = Hmac::<Sha256>::new_from_slice(&self.secret_key)
             .map_err(|e| DevDocsError::Encryption(format!("Failed to create HMAC: {}", e)))?;
-        
+
         mac.update(event_json.as_bytes());
         let result = mac.finalize();
-        
+
         Ok(hex::encode(result.into_bytes()))
     }
 }
@@ -911,7 +989,7 @@ mod tests {
     #[test]
     fn test_integrity_verifier() {
         let verifier = IntegrityVerifier::new().unwrap();
-        
+
         let event = AuditEvent {
             id: Uuid::new_v4(),
             event_type: AuditEventType::LoginSuccess,
@@ -933,7 +1011,7 @@ mod tests {
 
         let hash1 = verifier.calculate_hash(&event).unwrap();
         let hash2 = verifier.calculate_hash(&event).unwrap();
-        
+
         assert_eq!(hash1, hash2);
         assert!(!hash1.is_empty());
     }

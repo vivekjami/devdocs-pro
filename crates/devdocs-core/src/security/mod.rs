@@ -1,5 +1,5 @@
 //! Enterprise-grade security module for DevDocs Pro
-//! 
+//!
 //! This module provides comprehensive security features including:
 //! - Data encryption and key management
 //! - PII detection and redaction
@@ -7,28 +7,43 @@
 //! - Audit logging and compliance
 //! - Rate limiting and DDoS protection
 
-pub mod encryption;
-pub mod pii_detection;
-pub mod auth;
 pub mod audit;
-pub mod rate_limiting;
+pub mod auth;
 pub mod compliance;
-pub mod secrets;
-pub mod monitoring;
-pub mod data_protection;
 pub mod config;
+pub mod data_protection;
+pub mod encryption;
+pub mod monitoring;
+pub mod pii_detection;
+pub mod rate_limiting;
+pub mod secrets;
 
 // Re-export main types to avoid conflicts
-pub use encryption::{DataEncryptor, EncryptionConfig, EncryptionAlgorithm, SecureKey, EncryptedData};
-pub use pii_detection::{PiiDetector, PiiProtectionConfig, PiiDetectionResult, PiiType, RedactionStrategy};
-pub use auth::{Authenticator, AuthConfig, AuthResult, User, Organization, ApiKey, TokenType};
-pub use audit::{AuditLogger, AuditConfig, AuditEvent, AuditEventType, AuditQuery, AuditStatistics};
-pub use rate_limiting::{RateLimiter, RateLimitingConfig, RateLimitStatistics};
-pub use compliance::{ComplianceChecker, ComplianceConfig, ComplianceResult, ComplianceStandard as ComplianceStandardType};
-pub use secrets::{SecretsManager, SecretsConfig, SecureSecret, SecretType, SecretMetadata};
-pub use monitoring::{SecurityMonitor, SecurityMonitoringConfig, SecurityEvent, SecurityEventType, SecurityDashboard};
-pub use data_protection::{DataProtectionProcessor, DataProtectionConfig, ProtectedData, ProtectionMethod};
-pub use config::{SecurityConfigManager, MasterSecurityConfig, GlobalSecuritySettings, SecurityMode};
+pub use audit::{
+    AuditConfig, AuditEvent, AuditEventType, AuditLogger, AuditQuery, AuditStatistics,
+};
+pub use auth::{ApiKey, AuthConfig, AuthResult, Authenticator, Organization, TokenType, User};
+pub use compliance::{
+    ComplianceChecker, ComplianceConfig, ComplianceResult,
+    ComplianceStandard as ComplianceStandardType,
+};
+pub use config::{
+    GlobalSecuritySettings, MasterSecurityConfig, SecurityConfigManager, SecurityMode,
+};
+pub use data_protection::{
+    DataProtectionConfig, DataProtectionProcessor, ProtectedData, ProtectionMethod,
+};
+pub use encryption::{
+    DataEncryptor, EncryptedData, EncryptionAlgorithm, EncryptionConfig, SecureKey,
+};
+pub use monitoring::{
+    SecurityDashboard, SecurityEvent, SecurityEventType, SecurityMonitor, SecurityMonitoringConfig,
+};
+pub use pii_detection::{
+    PiiDetectionResult, PiiDetector, PiiProtectionConfig, PiiType, RedactionStrategy,
+};
+pub use rate_limiting::{RateLimitStatistics, RateLimiter, RateLimitingConfig};
+pub use secrets::{SecretMetadata, SecretType, SecretsConfig, SecretsManager, SecureSecret};
 
 use crate::errors::DevDocsError;
 use serde::{Deserialize, Serialize};
@@ -126,11 +141,17 @@ impl SecurityContext {
     }
 
     pub fn requires_encryption(&self) -> bool {
-        matches!(self.security_level, SecurityLevel::Confidential | SecurityLevel::Restricted)
+        matches!(
+            self.security_level,
+            SecurityLevel::Confidential | SecurityLevel::Restricted
+        )
     }
 
     pub fn requires_audit(&self) -> bool {
-        matches!(self.security_level, SecurityLevel::Internal | SecurityLevel::Confidential | SecurityLevel::Restricted)
+        matches!(
+            self.security_level,
+            SecurityLevel::Internal | SecurityLevel::Confidential | SecurityLevel::Restricted
+        )
     }
 }
 
@@ -198,7 +219,9 @@ impl SecurityValidationResult {
     }
 
     pub fn is_critical(&self) -> bool {
-        self.violations.iter().any(|v| v.severity == Severity::Critical)
+        self.violations
+            .iter()
+            .any(|v| v.severity == Severity::Critical)
     }
 
     pub fn should_block(&self) -> bool {
@@ -231,14 +254,19 @@ impl SecurityManager {
     }
 
     /// Validate security requirements for incoming data
-    pub async fn validate_security(&self, 
-        data: &[u8], 
-        context: &SecurityContext
+    pub async fn validate_security(
+        &self,
+        data: &[u8],
+        context: &SecurityContext,
     ) -> Result<SecurityValidationResult, DevDocsError> {
         let mut result = SecurityValidationResult::new();
 
         // Check rate limiting
-        if let Err(e) = self.rate_limiter.check_rate_limit(&context.ip_address).await {
+        if let Err(e) = self
+            .rate_limiter
+            .check_rate_limit(&context.ip_address)
+            .await
+        {
             result.add_violation(SecurityViolation {
                 violation_type: ViolationType::RateLimitExceeded,
                 severity: Severity::High,
@@ -266,14 +294,18 @@ impl SecurityManager {
         }
 
         // Check compliance requirements
-        let compliance_result = self.compliance_checker.check_compliance(data, context).await?;
+        let compliance_result = self
+            .compliance_checker
+            .check_compliance(data, context)
+            .await?;
         for violation in compliance_result.violations {
             result.add_violation(violation);
         }
 
         // Add security recommendations
         if context.requires_encryption() && !self.is_data_encrypted(data) {
-            result.add_recommendation("Data should be encrypted for this security level".to_string());
+            result
+                .add_recommendation("Data should be encrypted for this security level".to_string());
         }
 
         if context.requires_audit() {
@@ -284,9 +316,10 @@ impl SecurityManager {
     }
 
     /// Process and secure data according to security requirements
-    pub async fn secure_data(&mut self, 
-        data: &[u8], 
-        context: &SecurityContext
+    pub async fn secure_data(
+        &mut self,
+        data: &[u8],
+        context: &SecurityContext,
     ) -> Result<Vec<u8>, DevDocsError> {
         let mut processed_data = data.to_vec();
 
@@ -297,7 +330,9 @@ impl SecurityManager {
 
         // Encrypt if required
         if context.requires_encryption() {
-            processed_data = self.encryptor.encrypt(&processed_data, &context.request_id.to_string())?;
+            processed_data = self
+                .encryptor
+                .encrypt(&processed_data, &context.request_id.to_string())?;
         }
 
         // Log audit trail if required
@@ -309,24 +344,27 @@ impl SecurityManager {
     }
 
     /// Authenticate and authorize a request
-    pub async fn authenticate_request(&self, 
-        token: &str, 
-        required_permissions: &[String]
+    pub async fn authenticate_request(
+        &self,
+        token: &str,
+        required_permissions: &[String],
     ) -> Result<SecurityContext, DevDocsError> {
         let auth_result = self.authenticator.validate_token(token).await?;
-        
+
         let context = SecurityContext::new(
             Uuid::new_v4(),
             "unknown".to_string(), // IP should be set by caller
-        ).with_user(auth_result.user_id, auth_result.organization_id)
-         .with_permissions(auth_result.permissions);
+        )
+        .with_user(auth_result.user_id, auth_result.organization_id)
+        .with_permissions(auth_result.permissions);
 
         // Check if user has required permissions
         for permission in required_permissions {
             if !context.has_permission(permission) {
-                return Err(DevDocsError::Unauthorized(
-                    format!("Missing required permission: {}", permission)
-                ));
+                return Err(DevDocsError::Unauthorized(format!(
+                    "Missing required permission: {}",
+                    permission
+                )));
             }
         }
 
@@ -339,20 +377,21 @@ impl SecurityManager {
         if data.len() < 16 {
             return false;
         }
-        
+
         let mut byte_counts = [0u32; 256];
         for &byte in data {
             byte_counts[byte as usize] += 1;
         }
-        
-        let entropy = byte_counts.iter()
+
+        let entropy = byte_counts
+            .iter()
             .filter(|&&count| count > 0)
             .map(|&count| {
                 let p = count as f64 / data.len() as f64;
                 -p * p.log2()
             })
             .sum::<f64>();
-            
+
         entropy > 7.0 // High entropy suggests encryption
     }
 }
@@ -365,7 +404,7 @@ mod tests {
     fn test_security_context_creation() {
         let request_id = Uuid::new_v4();
         let context = SecurityContext::new(request_id, "192.168.1.1".to_string());
-        
+
         assert_eq!(context.request_id, request_id);
         assert_eq!(context.ip_address, "192.168.1.1");
         assert_eq!(context.security_level, SecurityLevel::Public);
@@ -376,7 +415,7 @@ mod tests {
     fn test_security_context_permissions() {
         let context = SecurityContext::new(Uuid::new_v4(), "192.168.1.1".to_string())
             .with_permissions(vec!["read".to_string(), "write".to_string()]);
-        
+
         assert!(context.has_permission("read"));
         assert!(context.has_permission("write"));
         assert!(!context.has_permission("admin"));

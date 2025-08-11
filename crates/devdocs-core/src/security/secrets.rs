@@ -1,5 +1,5 @@
 //! Secure secrets management system
-//! 
+//!
 //! Provides secure storage, rotation, and access control for sensitive configuration
 
 use crate::errors::DevDocsError;
@@ -8,7 +8,6 @@ use ring::rand::{SecureRandom, SystemRandom};
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
 
 /// Secrets management configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -221,7 +220,11 @@ pub trait SecretsStorage {
     async fn retrieve_secret(&self, id: &str) -> Result<Option<SecureSecret>, DevDocsError>;
     async fn list_secrets(&self) -> Result<Vec<SecretMetadata>, DevDocsError>;
     async fn delete_secret(&mut self, id: &str) -> Result<(), DevDocsError>;
-    async fn update_metadata(&mut self, id: &str, metadata: &SecretMetadata) -> Result<(), DevDocsError>;
+    async fn update_metadata(
+        &mut self,
+        id: &str,
+        metadata: &SecretMetadata,
+    ) -> Result<(), DevDocsError>;
 }
 
 /// Local file storage implementation
@@ -260,14 +263,14 @@ pub enum SecretAccessType {
 impl SecretsManager {
     pub fn new(config: &SecretsConfig) -> Result<Self, DevDocsError> {
         let encryptor = SecretsEncryptor::new(&config.encryption)?;
-        
+
         let storage = match &config.storage_backend {
             SecretsStorageBackend::LocalFile { path } => {
                 LocalFileSecretsStorage::new(path, encryptor.clone())?
             }
             _ => {
                 return Err(DevDocsError::Configuration(
-                    "Unsupported secrets storage backend".to_string()
+                    "Unsupported secrets storage backend".to_string(),
                 ));
             }
         };
@@ -281,7 +284,12 @@ impl SecretsManager {
     }
 
     /// Store a new secret
-    pub async fn store_secret(&mut self, name: String, value: String, secret_type: SecretType) -> Result<String, DevDocsError> {
+    pub async fn store_secret(
+        &mut self,
+        name: String,
+        value: String,
+        secret_type: SecretType,
+    ) -> Result<String, DevDocsError> {
         let secret_id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now();
 
@@ -299,60 +307,99 @@ impl SecretsManager {
         };
 
         self.storage.store_secret(&secret).await?;
-        
-        self.log_access(&secret_id, "system", SecretAccessType::Write, true).await;
+
+        self.log_access(&secret_id, "system", SecretAccessType::Write, true)
+            .await;
 
         Ok(secret_id)
     }
 
     /// Retrieve a secret by ID
-    pub async fn get_secret(&mut self, secret_id: &str, accessor_id: &str) -> Result<Option<String>, DevDocsError> {
+    pub async fn get_secret(
+        &mut self,
+        secret_id: &str,
+        accessor_id: &str,
+    ) -> Result<Option<String>, DevDocsError> {
         // Check access permissions
-        if !self.check_access_permission(secret_id, accessor_id, "read").await? {
-            self.log_access(secret_id, accessor_id, SecretAccessType::Read, false).await;
-            return Err(DevDocsError::Unauthorized("Access denied to secret".to_string()));
+        if !self
+            .check_access_permission(secret_id, accessor_id, "read")
+            .await?
+        {
+            self.log_access(secret_id, accessor_id, SecretAccessType::Read, false)
+                .await;
+            return Err(DevDocsError::Unauthorized(
+                "Access denied to secret".to_string(),
+            ));
         }
 
         if let Some(secret) = self.storage.retrieve_secret(secret_id).await? {
             // Check if secret has expired
             if let Some(expires_at) = secret.expires_at {
                 if chrono::Utc::now() > expires_at {
-                    self.log_access(secret_id, accessor_id, SecretAccessType::Read, false).await;
+                    self.log_access(secret_id, accessor_id, SecretAccessType::Read, false)
+                        .await;
                     return Err(DevDocsError::NotFound("Secret has expired".to_string()));
                 }
             }
 
-            self.log_access(secret_id, accessor_id, SecretAccessType::Read, true).await;
+            self.log_access(secret_id, accessor_id, SecretAccessType::Read, true)
+                .await;
             Ok(Some(secret.value.expose_secret().clone()))
         } else {
-            self.log_access(secret_id, accessor_id, SecretAccessType::Read, false).await;
+            self.log_access(secret_id, accessor_id, SecretAccessType::Read, false)
+                .await;
             Ok(None)
         }
     }
 
     /// List all secrets (metadata only)
-    pub async fn list_secrets(&mut self, accessor_id: &str) -> Result<Vec<SecretMetadata>, DevDocsError> {
-        self.log_access("*", accessor_id, SecretAccessType::List, true).await;
+    pub async fn list_secrets(
+        &mut self,
+        accessor_id: &str,
+    ) -> Result<Vec<SecretMetadata>, DevDocsError> {
+        self.log_access("*", accessor_id, SecretAccessType::List, true)
+            .await;
         self.storage.list_secrets().await
     }
 
     /// Delete a secret
-    pub async fn delete_secret(&mut self, secret_id: &str, accessor_id: &str) -> Result<(), DevDocsError> {
-        if !self.check_access_permission(secret_id, accessor_id, "delete").await? {
-            self.log_access(secret_id, accessor_id, SecretAccessType::Delete, false).await;
-            return Err(DevDocsError::Unauthorized("Access denied to delete secret".to_string()));
+    pub async fn delete_secret(
+        &mut self,
+        secret_id: &str,
+        accessor_id: &str,
+    ) -> Result<(), DevDocsError> {
+        if !self
+            .check_access_permission(secret_id, accessor_id, "delete")
+            .await?
+        {
+            self.log_access(secret_id, accessor_id, SecretAccessType::Delete, false)
+                .await;
+            return Err(DevDocsError::Unauthorized(
+                "Access denied to delete secret".to_string(),
+            ));
         }
 
         self.storage.delete_secret(secret_id).await?;
-        self.log_access(secret_id, accessor_id, SecretAccessType::Delete, true).await;
+        self.log_access(secret_id, accessor_id, SecretAccessType::Delete, true)
+            .await;
         Ok(())
     }
 
     /// Rotate a secret
-    pub async fn rotate_secret(&mut self, secret_id: &str, accessor_id: &str) -> Result<String, DevDocsError> {
-        if !self.check_access_permission(secret_id, accessor_id, "rotate").await? {
-            self.log_access(secret_id, accessor_id, SecretAccessType::Rotate, false).await;
-            return Err(DevDocsError::Unauthorized("Access denied to rotate secret".to_string()));
+    pub async fn rotate_secret(
+        &mut self,
+        secret_id: &str,
+        accessor_id: &str,
+    ) -> Result<String, DevDocsError> {
+        if !self
+            .check_access_permission(secret_id, accessor_id, "rotate")
+            .await?
+        {
+            self.log_access(secret_id, accessor_id, SecretAccessType::Rotate, false)
+                .await;
+            return Err(DevDocsError::Unauthorized(
+                "Access denied to rotate secret".to_string(),
+            ));
         }
 
         if let Some(mut secret) = self.storage.retrieve_secret(secret_id).await? {
@@ -362,11 +409,13 @@ impl SecretsManager {
             secret.updated_at = chrono::Utc::now();
 
             self.storage.store_secret(&secret).await?;
-            self.log_access(secret_id, accessor_id, SecretAccessType::Rotate, true).await;
+            self.log_access(secret_id, accessor_id, SecretAccessType::Rotate, true)
+                .await;
 
             Ok(new_value)
         } else {
-            self.log_access(secret_id, accessor_id, SecretAccessType::Rotate, false).await;
+            self.log_access(secret_id, accessor_id, SecretAccessType::Rotate, false)
+                .await;
             Err(DevDocsError::NotFound("Secret not found".to_string()))
         }
     }
@@ -389,7 +438,8 @@ impl SecretsManager {
     /// Get secret access logs
     pub async fn get_access_logs(&self, secret_id: Option<&str>) -> Vec<SecretAccessLog> {
         if let Some(id) = secret_id {
-            self.access_log.iter()
+            self.access_log
+                .iter()
                 .filter(|log| log.secret_id == id)
                 .cloned()
                 .collect()
@@ -398,12 +448,23 @@ impl SecretsManager {
         }
     }
 
-    async fn check_access_permission(&self, _secret_id: &str, _accessor_id: &str, _permission: &str) -> Result<bool, DevDocsError> {
+    async fn check_access_permission(
+        &self,
+        _secret_id: &str,
+        _accessor_id: &str,
+        _permission: &str,
+    ) -> Result<bool, DevDocsError> {
         // Simplified implementation - in production would check RBAC
         Ok(true)
     }
 
-    async fn log_access(&mut self, secret_id: &str, accessor_id: &str, access_type: SecretAccessType, success: bool) {
+    async fn log_access(
+        &mut self,
+        secret_id: &str,
+        accessor_id: &str,
+        access_type: SecretAccessType,
+        success: bool,
+    ) {
         if self.config.audit.log_access {
             self.access_log.push(SecretAccessLog {
                 secret_id: secret_id.to_string(),
@@ -426,45 +487,59 @@ impl SecretsManager {
             _ => "default",
         };
 
-        self.config.rotation.rotation_policies.get(type_key).cloned()
-            .or_else(|| Some(RotationPolicy {
-                rotation_interval_days: self.config.rotation.default_rotation_days,
-                notification_days_before: 7,
-                auto_rotate: self.config.rotation.auto_rotation,
-                require_approval: false,
-            }))
+        self.config
+            .rotation
+            .rotation_policies
+            .get(type_key)
+            .cloned()
+            .or_else(|| {
+                Some(RotationPolicy {
+                    rotation_interval_days: self.config.rotation.default_rotation_days,
+                    notification_days_before: 7,
+                    auto_rotate: self.config.rotation.auto_rotation,
+                    require_approval: false,
+                })
+            })
     }
 
     fn generate_secret_value(&self, secret_type: SecretType) -> Result<String, DevDocsError> {
         match secret_type {
             SecretType::ApiKey => {
                 let mut bytes = vec![0u8; 32];
-                self.encryptor.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate API key: {}", e)))?;
-                Ok(format!("dk_{}", base64::engine::general_purpose::STANDARD.encode(&bytes)))
+                self.encryptor.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate API key: {}", e))
+                })?;
+                Ok(format!(
+                    "dk_{}",
+                    base64::engine::general_purpose::STANDARD.encode(&bytes)
+                ))
             }
             SecretType::DatabasePassword => {
                 let mut bytes = vec![0u8; 24];
-                self.encryptor.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate password: {}", e)))?;
+                self.encryptor.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate password: {}", e))
+                })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
             SecretType::JwtSigningKey => {
                 let mut bytes = vec![0u8; 64];
-                self.encryptor.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate JWT key: {}", e)))?;
+                self.encryptor.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate JWT key: {}", e))
+                })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
             SecretType::EncryptionKey => {
                 let mut bytes = vec![0u8; 32];
-                self.encryptor.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate encryption key: {}", e)))?;
+                self.encryptor.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate encryption key: {}", e))
+                })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
             _ => {
                 let mut bytes = vec![0u8; 32];
-                self.encryptor.rng.fill(&mut bytes)
-                    .map_err(|e| DevDocsError::Encryption(format!("Failed to generate secret: {}", e)))?;
+                self.encryptor.rng.fill(&mut bytes).map_err(|e| {
+                    DevDocsError::Encryption(format!("Failed to generate secret: {}", e))
+                })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
         }
@@ -507,8 +582,9 @@ impl Clone for SecretsEncryptor {
 impl LocalFileSecretsStorage {
     pub fn new(base_path: &str, encryptor: SecretsEncryptor) -> Result<Self, DevDocsError> {
         let path = std::path::PathBuf::from(base_path);
-        std::fs::create_dir_all(&path)
-            .map_err(|e| DevDocsError::Storage(format!("Failed to create secrets directory: {}", e)))?;
+        std::fs::create_dir_all(&path).map_err(|e| {
+            DevDocsError::Storage(format!("Failed to create secrets directory: {}", e))
+        })?;
 
         Ok(Self {
             base_path: path,
@@ -525,7 +601,7 @@ impl LocalFileSecretsStorage {
 impl SecretsStorage for LocalFileSecretsStorage {
     async fn store_secret(&mut self, secret: &SecureSecret) -> Result<(), DevDocsError> {
         let file_path = self.get_secret_file_path(&secret.id);
-        
+
         // Create metadata without the secret value
         let metadata = SecretMetadata {
             id: secret.id.clone(),
@@ -542,17 +618,20 @@ impl SecretsStorage for LocalFileSecretsStorage {
         };
 
         // Encrypt the secret value
-        let encrypted_value = self.encryptor.encrypt(secret.value.expose_secret().as_bytes())?;
+        let encrypted_value = self
+            .encryptor
+            .encrypt(secret.value.expose_secret().as_bytes())?;
 
         let storage_data = StoredSecret {
             metadata,
             encrypted_value,
         };
 
-        let json_data = serde_json::to_vec(&storage_data)
-            .map_err(|e| DevDocsError::Serialization(e))?;
+        let json_data =
+            serde_json::to_vec(&storage_data).map_err(|e| DevDocsError::Serialization(e))?;
 
-        tokio::fs::write(&file_path, json_data).await
+        tokio::fs::write(&file_path, json_data)
+            .await
             .map_err(|e| DevDocsError::Storage(format!("Failed to write secret file: {}", e)))?;
 
         Ok(())
@@ -560,16 +639,17 @@ impl SecretsStorage for LocalFileSecretsStorage {
 
     async fn retrieve_secret(&self, id: &str) -> Result<Option<SecureSecret>, DevDocsError> {
         let file_path = self.get_secret_file_path(id);
-        
+
         if !file_path.exists() {
             return Ok(None);
         }
 
-        let json_data = tokio::fs::read(&file_path).await
+        let json_data = tokio::fs::read(&file_path)
+            .await
             .map_err(|e| DevDocsError::Storage(format!("Failed to read secret file: {}", e)))?;
 
-        let stored_secret: StoredSecret = serde_json::from_slice(&json_data)
-            .map_err(|e| DevDocsError::Serialization(e))?;
+        let stored_secret: StoredSecret =
+            serde_json::from_slice(&json_data).map_err(|e| DevDocsError::Serialization(e))?;
 
         let decrypted_value = self.encryptor.decrypt(&stored_secret.encrypted_value)?;
         let value_string = String::from_utf8(decrypted_value)
@@ -593,16 +673,20 @@ impl SecretsStorage for LocalFileSecretsStorage {
 
     async fn list_secrets(&self) -> Result<Vec<SecretMetadata>, DevDocsError> {
         let mut secrets = Vec::new();
-        let mut entries = tokio::fs::read_dir(&self.base_path).await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read secrets directory: {}", e)))?;
+        let mut entries = tokio::fs::read_dir(&self.base_path).await.map_err(|e| {
+            DevDocsError::Storage(format!("Failed to read secrets directory: {}", e))
+        })?;
 
-        while let Some(entry) = entries.next_entry().await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))? {
-            
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))?
+        {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.ends_with(".secret") {
-                    let json_data = tokio::fs::read(entry.path()).await
-                        .map_err(|e| DevDocsError::Storage(format!("Failed to read secret file: {}", e)))?;
+                    let json_data = tokio::fs::read(entry.path()).await.map_err(|e| {
+                        DevDocsError::Storage(format!("Failed to read secret file: {}", e))
+                    })?;
 
                     if let Ok(stored_secret) = serde_json::from_slice::<StoredSecret>(&json_data) {
                         secrets.push(stored_secret.metadata);
@@ -616,16 +700,21 @@ impl SecretsStorage for LocalFileSecretsStorage {
 
     async fn delete_secret(&mut self, id: &str) -> Result<(), DevDocsError> {
         let file_path = self.get_secret_file_path(id);
-        
+
         if file_path.exists() {
-            tokio::fs::remove_file(&file_path).await
-                .map_err(|e| DevDocsError::Storage(format!("Failed to delete secret file: {}", e)))?;
+            tokio::fs::remove_file(&file_path).await.map_err(|e| {
+                DevDocsError::Storage(format!("Failed to delete secret file: {}", e))
+            })?;
         }
 
         Ok(())
     }
 
-    async fn update_metadata(&mut self, id: &str, metadata: &SecretMetadata) -> Result<(), DevDocsError> {
+    async fn update_metadata(
+        &mut self,
+        id: &str,
+        metadata: &SecretMetadata,
+    ) -> Result<(), DevDocsError> {
         // For file storage, we need to read the secret, update metadata, and write back
         if let Some(mut secret) = self.retrieve_secret(id).await? {
             // Update the metadata fields
@@ -683,11 +772,14 @@ mod tests {
 
         let mut manager = SecretsManager::new(&config).unwrap();
 
-        let secret_id = manager.store_secret(
-            "test_secret".to_string(),
-            "secret_value_123".to_string(),
-            SecretType::ApiKey,
-        ).await.unwrap();
+        let secret_id = manager
+            .store_secret(
+                "test_secret".to_string(),
+                "secret_value_123".to_string(),
+                SecretType::ApiKey,
+            )
+            .await
+            .unwrap();
 
         let retrieved = manager.get_secret(&secret_id, "test_user").await.unwrap();
         assert_eq!(retrieved, Some("secret_value_123".to_string()));
@@ -703,17 +795,23 @@ mod tests {
 
         let mut manager = SecretsManager::new(&config).unwrap();
 
-        let _secret_id1 = manager.store_secret(
-            "secret1".to_string(),
-            "value1".to_string(),
-            SecretType::ApiKey,
-        ).await.unwrap();
+        let _secret_id1 = manager
+            .store_secret(
+                "secret1".to_string(),
+                "value1".to_string(),
+                SecretType::ApiKey,
+            )
+            .await
+            .unwrap();
 
-        let _secret_id2 = manager.store_secret(
-            "secret2".to_string(),
-            "value2".to_string(),
-            SecretType::DatabasePassword,
-        ).await.unwrap();
+        let _secret_id2 = manager
+            .store_secret(
+                "secret2".to_string(),
+                "value2".to_string(),
+                SecretType::DatabasePassword,
+            )
+            .await
+            .unwrap();
 
         let secrets = manager.list_secrets("test_user").await.unwrap();
         assert_eq!(secrets.len(), 2);
@@ -729,13 +827,19 @@ mod tests {
 
         let mut manager = SecretsManager::new(&config).unwrap();
 
-        let secret_id = manager.store_secret(
-            "test_secret".to_string(),
-            "secret_value".to_string(),
-            SecretType::ApiKey,
-        ).await.unwrap();
+        let secret_id = manager
+            .store_secret(
+                "test_secret".to_string(),
+                "secret_value".to_string(),
+                SecretType::ApiKey,
+            )
+            .await
+            .unwrap();
 
-        manager.delete_secret(&secret_id, "test_user").await.unwrap();
+        manager
+            .delete_secret(&secret_id, "test_user")
+            .await
+            .unwrap();
 
         let retrieved = manager.get_secret(&secret_id, "test_user").await.unwrap();
         assert_eq!(retrieved, None);
@@ -751,13 +855,19 @@ mod tests {
 
         let mut manager = SecretsManager::new(&config).unwrap();
 
-        let secret_id = manager.store_secret(
-            "test_secret".to_string(),
-            "original_value".to_string(),
-            SecretType::ApiKey,
-        ).await.unwrap();
+        let secret_id = manager
+            .store_secret(
+                "test_secret".to_string(),
+                "original_value".to_string(),
+                SecretType::ApiKey,
+            )
+            .await
+            .unwrap();
 
-        let new_value = manager.rotate_secret(&secret_id, "test_user").await.unwrap();
+        let new_value = manager
+            .rotate_secret(&secret_id, "test_user")
+            .await
+            .unwrap();
         assert_ne!(new_value, "original_value");
 
         let retrieved = manager.get_secret(&secret_id, "test_user").await.unwrap();
@@ -786,10 +896,10 @@ mod tests {
 
         let encryptor = SecretsEncryptor::new(&config).unwrap();
         let data = b"test secret data";
-        
+
         let encrypted = encryptor.encrypt(data).unwrap();
         let decrypted = encryptor.decrypt(&encrypted).unwrap();
-        
+
         assert_eq!(data, decrypted.as_slice());
     }
 }

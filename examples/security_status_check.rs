@@ -1,5 +1,5 @@
 //! Security system status check
-//! 
+//!
 //! This example verifies that all security modules are properly compiled and accessible
 
 use devdocs_core::security::*;
@@ -60,6 +60,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n🎉 All security modules are properly compiled and accessible!");
     println!("✅ The security system is ready for production use!");
-    
+
     Ok(())
 }

@@ -738,19 +738,17 @@ impl SecurityMetrics {
         let blocked_ips = Gauge::new("blocked_ips", "Number of currently blocked IP addresses")
             .map_err(|e| DevDocsError::Configuration(format!("Failed to create gauge: {}", e)))?;
 
-        let event_processing_duration = Histogram::with_opts(
-            prometheus::HistogramOpts::new(
-                "event_processing_duration_seconds",
-                "Time spent processing security events"
-            )
-        ).map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {}", e)))?;
+        let event_processing_duration = Histogram::with_opts(prometheus::HistogramOpts::new(
+            "event_processing_duration_seconds",
+            "Time spent processing security events",
+        ))
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {}", e)))?;
 
-        let threat_detection_duration = Histogram::with_opts(
-            prometheus::HistogramOpts::new(
-                "threat_detection_duration_seconds",
-                "Time spent on threat detection"
-            )
-        ).map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {}", e)))?;
+        let threat_detection_duration = Histogram::with_opts(prometheus::HistogramOpts::new(
+            "threat_detection_duration_seconds",
+            "Time spent on threat detection",
+        ))
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {}", e)))?;
 
         // Register metrics
         registry
