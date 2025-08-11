@@ -7,6 +7,7 @@ pub mod ai;
 pub mod analysis;
 pub mod body_capture;
 pub mod config;
+pub mod documentation;
 pub mod errors;
 pub mod models;
 pub mod security;

@@ -19,6 +19,10 @@ path = "security_example.rs"
 name = "security_status_check"
 path = "security_status_check.rs"
 
+[[bin]]
+name = "complete_example"
+path = "complete_example.rs"
+
 [dependencies]
 devdocs-middleware = { path = "../crates/devdocs-middleware" }
 devdocs-core = { path = "../crates/devdocs-core" }

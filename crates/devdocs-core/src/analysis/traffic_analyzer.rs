@@ -1,23 +1,19 @@
 //! Traffic analysis pipeline for AI-powered documentation generation
 
-use crate::ai::gemini_client::{GeminiClient, GeminiPrompt};
-use crate::analysis::schema_inference::{JsonSchema, SchemaInferrer};
+use crate::analysis::AnalysisConfig;
 use crate::errors::{DevDocsError, Result};
 use crate::models::TrafficSample;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Legacy traffic analyzer - kept for compatibility
 pub struct TrafficAnalyzer {
-    gemini_client: GeminiClient,
-    schema_inferrer: SchemaInferrer,
+    config: AnalysisConfig,
 }
 
 impl TrafficAnalyzer {
-    pub fn new(gemini_client: GeminiClient) -> Self {
-        Self {
-            gemini_client,
-            schema_inferrer: SchemaInferrer::new(),
-        }
+    pub fn new(config: AnalysisConfig) -> Result<Self> {
+        Ok(Self { config })
     }
 
     pub async fn analyze_endpoint_samples(
@@ -30,7 +26,6 @@ impl TrafficAnalyzer {
 
         // Group samples by endpoint pattern
         let grouped = self.group_by_endpoint(samples);
-
         let mut results = Vec::new();
 
         // Process each endpoint
@@ -41,77 +36,18 @@ impl TrafficAnalyzer {
                 endpoint_samples.len()
             );
 
-            // Extract method (GET, POST, etc.)
             let method = self.extract_common_method(&endpoint_samples);
+            let traffic_patterns = self.analyze_traffic_patterns(&endpoint_samples);
 
-            // Extract request bodies for schema inference
-            let request_bodies: Vec<_> = endpoint_samples
-                .iter()
-                .filter_map(|s| s.request.body.as_ref())
-                .collect();
-
-            // Extract response bodies for schema inference
-            let response_bodies: Vec<_> = endpoint_samples
-                .iter()
-                .filter_map(|s| s.response.as_ref())
-                .filter_map(|r| r.body.as_ref())
-                .collect();
-
-            // Infer schemas from bodies
-            let request_schema = if !request_bodies.is_empty() {
-                self.schema_inferrer
-                    .infer_from_json_bodies(&request_bodies)
-                    .await
-                    .ok()
-            } else {
-                None
-            };
-
-            let response_schema = if !response_bodies.is_empty() {
-                self.schema_inferrer
-                    .infer_from_json_bodies(&response_bodies)
-                    .await
-                    .ok()
-            } else {
-                None
-            };
-
-            // Create AI prompt for this endpoint
-            let prompt = GeminiPrompt::for_endpoint_analysis(&endpoint, &method, &endpoint_samples);
-
-            // Send to Gemini for analysis
-            match self.gemini_client.generate_content(&prompt).await {
-                Ok(ai_response) => {
-                    // Extract documentation from AI response
-                    let documentation = self.extract_documentation(ai_response)?;
-
-                    results.push(EndpointDocumentation {
-                        endpoint: endpoint.clone(),
-                        method: method.clone(),
-                        documentation,
-                        request_schema,
-                        response_schema,
-                        sample_count: endpoint_samples.len(),
-                        traffic_patterns: self.analyze_traffic_patterns(&endpoint_samples),
-                    });
-
-                    tracing::info!("Successfully analyzed endpoint: {} {}", method, endpoint);
-                }
-                Err(e) => {
-                    tracing::error!("Failed to analyze endpoint {} {}: {}", method, endpoint, e);
-
-                    // Create fallback documentation
-                    results.push(EndpointDocumentation {
-                        endpoint: endpoint.clone(),
-                        method: method.clone(),
-                        documentation: AIDocumentation::fallback(&endpoint, &method),
-                        request_schema,
-                        response_schema,
-                        sample_count: endpoint_samples.len(),
-                        traffic_patterns: self.analyze_traffic_patterns(&endpoint_samples),
-                    });
-                }
-            }
+            results.push(EndpointDocumentation {
+                endpoint: endpoint.clone(),
+                method: method.clone(),
+                documentation: AIDocumentation::fallback(&endpoint, &method),
+                request_schema: None, // Would be populated by schema inference
+                response_schema: None, // Would be populated by schema inference
+                sample_count: endpoint_samples.len(),
+                traffic_patterns,
+            });
         }
 
         Ok(EndpointAnalysis {
@@ -152,23 +88,6 @@ impl TrafficAnalyzer {
             .unwrap_or_else(|| "GET".to_string())
     }
 
-    fn extract_documentation(
-        &self,
-        ai_response: crate::ai::gemini_client::GeminiResponse,
-    ) -> Result<AIDocumentation> {
-        let text = ai_response
-            .get_text()
-            .ok_or_else(|| DevDocsError::InvalidRequest("No text in AI response".into()))?;
-
-        // Try to parse as JSON first
-        if let Ok(doc) = serde_json::from_str::<AIDocumentation>(&text) {
-            return Ok(doc);
-        }
-
-        // Fallback: extract from markdown format
-        Ok(AIDocumentation::from_markdown(&text))
-    }
-
     fn analyze_traffic_patterns(&self, samples: &[TrafficSample]) -> TrafficPatterns {
         let mut status_codes = HashMap::new();
         let mut response_times = Vec::new();
@@ -186,6 +105,16 @@ impl TrafficAnalyzer {
         }
 
         // Calculate response time statistics
+        if response_times.is_empty() {
+            return TrafficPatterns {
+                request_count: samples.len(),
+                status_code_distribution: status_codes,
+                avg_response_time_ms: 0,
+                median_response_time_ms: 0,
+                error_rate: 0.0,
+            };
+        }
+
         response_times.sort_unstable();
         let avg_response_time = response_times.iter().sum::<u64>() / response_times.len() as u64;
         let median_response_time = response_times
@@ -215,8 +144,8 @@ pub struct EndpointDocumentation {
     pub endpoint: String,
     pub method: String,
     pub documentation: AIDocumentation,
-    pub request_schema: Option<JsonSchema>,
-    pub response_schema: Option<JsonSchema>,
+    pub request_schema: Option<serde_json::Value>,
+    pub response_schema: Option<serde_json::Value>,
     pub sample_count: usize,
     pub traffic_patterns: TrafficPatterns,
 }
@@ -285,4 +214,76 @@ pub struct TrafficPatterns {
     pub avg_response_time_ms: u64,
     pub median_response_time_ms: u64,
     pub error_rate: f64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{HttpRequest, HttpResponse};
+
+    #[tokio::test]
+    async fn test_traffic_analyzer_creation() {
+        let config = AnalysisConfig::default();
+        let analyzer = TrafficAnalyzer::new(config);
+        assert!(analyzer.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_empty_samples_analysis() {
+        let config = AnalysisConfig::default();
+        let mut analyzer = TrafficAnalyzer::new(config).unwrap();
+        
+        let result = analyzer.analyze_endpoint_samples(&[]).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_extract_common_method() {
+        let config = AnalysisConfig::default();
+        let analyzer = TrafficAnalyzer::new(config).unwrap();
+
+        let samples = vec![
+            TrafficSample::new(
+                HttpRequest::new("GET".to_string(), "/test".to_string(), "corr-1".to_string()),
+                "/test".to_string(),
+            ),
+            TrafficSample::new(
+                HttpRequest::new("GET".to_string(), "/test".to_string(), "corr-2".to_string()),
+                "/test".to_string(),
+            ),
+            TrafficSample::new(
+                HttpRequest::new("POST".to_string(), "/test".to_string(), "corr-3".to_string()),
+                "/test".to_string(),
+            ),
+        ];
+
+        let method = analyzer.extract_common_method(&samples);
+        assert_eq!(method, "GET");
+    }
+
+    #[test]
+    fn test_traffic_patterns_analysis() {
+        let config = AnalysisConfig::default();
+        let analyzer = TrafficAnalyzer::new(config).unwrap();
+
+        let samples = vec![
+            TrafficSample::new(
+                HttpRequest::new("GET".to_string(), "/test".to_string(), "corr-1".to_string()),
+                "/test".to_string(),
+            ).with_response(
+                HttpResponse::new(uuid::Uuid::new_v4(), 200).with_processing_time(100)
+            ),
+            TrafficSample::new(
+                HttpRequest::new("GET".to_string(), "/test".to_string(), "corr-2".to_string()),
+                "/test".to_string(),
+            ).with_response(
+                HttpResponse::new(uuid::Uuid::new_v4(), 404).with_processing_time(50)
+            ),
+        ];
+
+        let patterns = analyzer.analyze_traffic_patterns(&samples);
+        assert_eq!(patterns.request_count, 2);
+        assert_eq!(patterns.avg_response_time_ms, 75);
+        assert_eq!(patterns.error_rate, 0.5);
+    }
 }

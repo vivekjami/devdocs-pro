@@ -21,18 +21,18 @@ impl AIProcessorService {
     pub fn new(
         traffic_receiver: mpsc::UnboundedReceiver<TrafficSample>,
         gemini_api_key: String,
-    ) -> Self {
+    ) -> Result<Self, devdocs_core::DevDocsError> {
         let gemini_client = GeminiClient::new(gemini_api_key);
-        let ai_analyzer = TrafficAnalyzer::new(gemini_client);
+        let ai_analyzer = TrafficAnalyzer::new(devdocs_core::analysis::AnalysisConfig::default())?;
 
-        Self {
+        Ok(Self {
             traffic_receiver,
             ai_analyzer,
             batch_buffer: Vec::new(),
             batch_timeout: Duration::from_secs(30), // Process every 30 seconds
             batch_size: 10,                         // Or when we have 10 samples
             doc_update_sender: None,
-        }
+        })
     }
 
     pub fn with_documentation_updates(
@@ -90,8 +90,8 @@ impl AIProcessorService {
 
         // Process asynchronously to not block receiving new samples
         let mut analyzer = std::mem::replace(&mut self.ai_analyzer, {
-            let gemini_client = GeminiClient::new("temp".to_string()); // This is a hack - would fix in production
-            TrafficAnalyzer::new(gemini_client)
+            let config = devdocs_core::analysis::AnalysisConfig::default();
+            TrafficAnalyzer::new(config).expect("Failed to create analyzer")
         });
 
         tokio::spawn(async move {

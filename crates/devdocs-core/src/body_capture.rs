@@ -393,6 +393,20 @@ impl CapturedBody {
             BodyStorage::File(_) => 0, // Would need to read file to get size
         }
     }
+
+    /// Get body as bytes (synchronous version for compatibility)
+    pub fn as_bytes(&self) -> Vec<u8> {
+        match &self.storage {
+            BodyStorage::Memory(data) => data.clone(),
+            BodyStorage::Truncated { captured, .. } => captured.clone(),
+            BodyStorage::File(_) => {
+                // For file storage, we'd need async read, so return empty for now
+                // In practice, this should use get_data().await
+                tracing::warn!("as_bytes() called on file-stored body, returning empty");
+                Vec::new()
+            }
+        }
+    }
 }
 
 #[cfg(test)]

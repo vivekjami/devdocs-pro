@@ -16,7 +16,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test 1: Schema Inference
     println!("\n1. 📊 Testing Schema Inference...");
-    let inference = SchemaInferrer::new();
+    let config = devdocs_core::analysis::AnalysisConfig::default();
+    let mut inference = SchemaInferrer::new(&config)?;
 
     let sample_json = json!({
         "id": 12345,
@@ -54,21 +55,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         storage: BodyStorage::Memory(sample_json.to_string().into_bytes()),
     };
 
-    match inference.infer_from_json_bodies(&[&captured_body]).await {
-        Ok(schema) => {
+    // Create a sample traffic sample for schema inference
+    let request = devdocs_core::models::HttpRequest::new(
+        "POST".to_string(),
+        "/test".to_string(),
+        "corr-123".to_string(),
+    ).with_body(captured_body.clone());
+    
+    let sample = devdocs_core::models::TrafficSample::new(request, "/test".to_string());
+    
+    match inference.infer_schemas(&[sample]).await {
+        Ok(schemas) => {
             println!("   ✅ Schema inference successful!");
-            println!("   📋 Schema properties: {}", schema.properties.len());
-            println!(
-                "   🔍 Top-level keys: {:?}",
-                schema.properties.keys().collect::<Vec<_>>()
-            );
-
-            // Check specific properties
-            if schema.properties.contains_key("user") {
-                println!("   👤 User object detected");
-            }
-            if schema.properties.contains_key("orders") {
-                println!("   📦 Orders array detected");
+            println!("   📋 Generated {} schemas", schemas.len());
+            for (name, schema) in &schemas {
+                println!("   🔍 Schema '{}': {}", name, serde_json::to_string_pretty(schema).unwrap_or_default());
             }
         }
         Err(e) => {

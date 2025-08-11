@@ -602,7 +602,7 @@ impl AuditStorage for FileSystemAuditStorage {
         let event_json =
             serde_json::to_string(event).map_err(|e| DevDocsError::Serialization(e))?;
 
-        let mut content = event_json + "\n";
+        let content = event_json + "\n";
 
         let data_to_write = if self.enable_compression {
             use flate2::write::GzEncoder;

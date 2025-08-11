@@ -7,7 +7,7 @@ use std::path::PathBuf;
 pub struct Config {
     pub api_key: String,
     pub sampling_rate: f64,
-    pub max_body_size: usize,
+    pub max_body_size: Option<usize>,
     pub excluded_paths: Vec<String>,
     pub gemini_api_key: Option<String>,
     pub enable_pii_filtering: bool,
@@ -15,6 +15,14 @@ pub struct Config {
     pub body_capture: BodyCaptureConfig,
     /// Comprehensive security configuration
     pub security: MasterSecurityConfig,
+    /// AI analysis configuration
+    pub enable_ai_analysis: bool,
+    pub min_samples_for_inference: Option<usize>,
+    /// API metadata
+    pub api_title: Option<String>,
+    pub api_version: Option<String>,
+    pub api_description: Option<String>,
+    pub base_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,7 +57,7 @@ impl Default for Config {
         Self {
             api_key: env::var("DEVDOCS_API_KEY").unwrap_or_default(),
             sampling_rate: 0.1,              // 10% sampling by default
-            max_body_size: 10 * 1024 * 1024, // 10MB
+            max_body_size: Some(10 * 1024 * 1024), // 10MB
             excluded_paths: vec![
                 "/health".to_string(),
                 "/metrics".to_string(),
@@ -60,6 +68,12 @@ impl Default for Config {
             server_url: "https://api.devdocs.pro".to_string(),
             body_capture: BodyCaptureConfig::default(),
             security: MasterSecurityConfig::default(),
+            enable_ai_analysis: true,
+            min_samples_for_inference: Some(5),
+            api_title: None,
+            api_version: None,
+            api_description: None,
+            base_url: None,
         }
     }
 }
@@ -73,8 +87,9 @@ impl Config {
         }
 
         if let Ok(size) = env::var("DEVDOCS_MAX_BODY_SIZE") {
-            config.max_body_size = size.parse()?;
-            config.body_capture.max_size = config.max_body_size;
+            let parsed_size = size.parse()?;
+            config.max_body_size = Some(parsed_size);
+            config.body_capture.max_size = parsed_size;
         }
 
         if let Ok(temp_dir) = env::var("DEVDOCS_TEMP_DIR") {
@@ -103,8 +118,10 @@ impl Config {
             return Err("Sampling rate must be between 0.0 and 1.0".to_string());
         }
 
-        if self.max_body_size == 0 {
-            return Err("Max body size must be greater than 0".to_string());
+        if let Some(size) = self.max_body_size {
+            if size == 0 {
+                return Err("Max body size must be greater than 0".to_string());
+            }
         }
 
         if self.server_url.is_empty() {
@@ -124,7 +141,7 @@ mod tests {
     fn test_config_default() {
         let config = Config::default();
         assert_eq!(config.sampling_rate, 0.1);
-        assert_eq!(config.max_body_size, 10 * 1024 * 1024);
+        assert_eq!(config.max_body_size, Some(10 * 1024 * 1024));
         assert!(!config.excluded_paths.is_empty());
         assert_eq!(config.enable_pii_filtering, true);
         assert_eq!(config.server_url, "https://api.devdocs.pro");
@@ -153,7 +170,7 @@ mod tests {
 
         let config = Config::from_env().unwrap();
         assert_eq!(config.sampling_rate, 0.1);
-        assert_eq!(config.max_body_size, 10 * 1024 * 1024);
+        assert_eq!(config.max_body_size, Some(10 * 1024 * 1024));
         assert!(config.body_capture.enabled);
     }
 
@@ -165,7 +182,7 @@ mod tests {
 
         let config = Config::from_env().unwrap();
         assert_eq!(config.sampling_rate, 0.5);
-        assert_eq!(config.max_body_size, 5242880);
+        assert_eq!(config.max_body_size, Some(5242880));
         assert_eq!(config.body_capture.enabled, false);
 
         // Clean up
@@ -253,7 +270,7 @@ mod tests {
     #[test]
     fn test_config_validation_zero_body_size() {
         let mut config = Config::default();
-        config.max_body_size = 0;
+        config.max_body_size = Some(0);
         assert!(config.validate().is_err());
         assert_eq!(
             config.validate().unwrap_err(),

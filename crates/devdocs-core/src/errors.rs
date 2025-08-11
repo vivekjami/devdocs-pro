@@ -11,6 +11,9 @@ pub enum DevDocsError {
     #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
 
+    #[error("Network error: {0}")]
+    NetworkError(String),
+
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
@@ -73,7 +76,7 @@ impl DevDocsError {
     pub fn is_retryable(&self) -> bool {
         matches!(
             self,
-            DevDocsError::Network(_) | DevDocsError::Timeout(_) | DevDocsError::RateLimit(_)
+            DevDocsError::Network(_) | DevDocsError::NetworkError(_) | DevDocsError::Timeout(_) | DevDocsError::RateLimit(_)
         )
     }
 
@@ -82,6 +85,7 @@ impl DevDocsError {
             DevDocsError::Config(_) => 1001,
             DevDocsError::Configuration(_) => 1001,
             DevDocsError::Network(_) => 1002,
+            DevDocsError::NetworkError(_) => 1002,
             DevDocsError::Serialization(_) => 1003,
             DevDocsError::Io(_) => 1004,
             DevDocsError::Storage(_) => 1005,
