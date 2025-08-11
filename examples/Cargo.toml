@@ -16,8 +16,8 @@ name = "security_example"
 path = "security_example.rs"
 
 [[bin]]
-name = "simple_security_test"
-path = "simple_security_test.rs"
+name = "security_status_check"
+path = "security_status_check.rs"
 
 [dependencies]
 devdocs-middleware = { path = "../crates/devdocs-middleware" }

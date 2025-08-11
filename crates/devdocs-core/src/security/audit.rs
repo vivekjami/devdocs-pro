@@ -549,7 +549,7 @@ impl AuditStorage for FileSystemAuditStorage {
 
         let mut content = event_json + "\n";
 
-        if self.enable_compression {
+        let data_to_write = if self.enable_compression {
             use flate2::write::GzEncoder;
             use flate2::Compression;
             use std::io::Write;
@@ -557,10 +557,11 @@ impl AuditStorage for FileSystemAuditStorage {
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             encoder.write_all(content.as_bytes())
                 .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?;
-            content = String::from_utf8(encoder.finish()
-                .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?)
-                .map_err(|e| DevDocsError::Storage(format!("Invalid UTF-8 after compression: {}", e)))?;
-        }
+            encoder.finish()
+                .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?
+        } else {
+            content.as_bytes().to_vec()
+        };
 
         tokio::fs::OpenOptions::new()
             .create(true)
@@ -568,7 +569,7 @@ impl AuditStorage for FileSystemAuditStorage {
             .open(&log_file)
             .await
             .map_err(|e| DevDocsError::Storage(format!("Failed to open audit log file: {}", e)))?
-            .write_all(content.as_bytes())
+            .write_all(&data_to_write)
             .await
             .map_err(|e| DevDocsError::Storage(format!("Failed to write audit event: {}", e)))?;
 
@@ -593,8 +594,22 @@ impl AuditStorage for FileSystemAuditStorage {
             
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.starts_with("audit_") && file_name.ends_with(".jsonl") {
-                    let content = tokio::fs::read_to_string(entry.path()).await
+                    let file_data = tokio::fs::read(entry.path()).await
                         .map_err(|e| DevDocsError::Storage(format!("Failed to read audit file: {}", e)))?;
+                    
+                    let content = if self.enable_compression {
+                        use flate2::read::GzDecoder;
+                        use std::io::Read;
+                        
+                        let mut decoder = GzDecoder::new(&file_data[..]);
+                        let mut decompressed = String::new();
+                        decoder.read_to_string(&mut decompressed)
+                            .map_err(|e| DevDocsError::Storage(format!("Failed to decompress audit file: {}", e)))?;
+                        decompressed
+                    } else {
+                        String::from_utf8(file_data)
+                            .map_err(|e| DevDocsError::Storage(format!("Failed to read audit file: {}", e)))?
+                    };
 
                     for line in content.lines() {
                         if let Ok(event) = serde_json::from_str::<AuditEvent>(line) {

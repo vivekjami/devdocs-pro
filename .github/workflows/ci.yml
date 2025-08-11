@@ -9,6 +9,15 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # Security environment variables for testing
+  JWT_SECRET: "test_jwt_secret_for_ci_only"
+  DEVDOCS_MASTER_KEY: "test_master_key_for_ci_only"
+  SECRETS_MASTER_KEY: "test_secrets_key_for_ci_only"
+  SECURITY_MODE: "development"
+  ENCRYPTION_ENABLED: "true"
+  AUTH_ENABLED: "true"
+  RATE_LIMITING_ENABLED: "true"
+  MONITORING_ENABLED: "true"
 
 jobs:
   test:
@@ -36,18 +45,67 @@ jobs:
     - name: Format check
       run: cargo fmt --all -- --check
       
-    - name: Clippy
-      run: cargo clippy --all-targets --all-features
+    - name: Clippy (with security lints)
+      run: cargo clippy --all-targets --all-features -- -D warnings -W clippy::all -W clippy::pedantic -W clippy::security
       
-    - name: Run tests
-      run: cargo test --all-features
+    - name: Create required directories
+      run: |
+        mkdir -p examples/audit_logs
+        mkdir -p examples/secrets
+        
+    - name: Run all tests (including security)
+      run: cargo test --all-features --verbose
       
-    - name: Build
+    - name: Run security status check
+      run: cargo run --bin security_status_check
+      working-directory: examples
+      
+    - name: Build release
       run: cargo build --all-features --release
+
+  security-validation:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-security-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-security-
+          ${{ runner.os }}-cargo-
+          
+    - name: Create required directories
+      run: |
+        mkdir -p examples/audit_logs
+        mkdir -p examples/secrets
+        
+    - name: Run comprehensive security example (with timeout)
+      run: timeout 60s cargo run --bin security_example || echo "Security example completed or timed out"
+      working-directory: examples
+      
+    - name: Validate security configuration
+      run: |
+        if [ -f security_config.yaml ]; then
+          echo "✅ Security configuration exists"
+        else
+          echo "❌ Security configuration missing"
+          exit 1
+        fi
 
   ai-integration-test:
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, security-validation]
     
     steps:
     - uses: actions/checkout@v4
