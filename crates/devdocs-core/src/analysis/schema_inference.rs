@@ -60,8 +60,6 @@ pub struct ValidationConstraints {
 /// Schema inference engine
 pub struct SchemaInferrer {
     config: AnalysisConfig,
-    type_frequency: HashMap<String, HashMap<FieldType, usize>>,
-    value_examples: HashMap<String, Vec<Value>>,
 }
 
 impl SchemaInferrer {
@@ -69,8 +67,6 @@ impl SchemaInferrer {
     pub fn new(config: &AnalysisConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
             config: config.clone(),
-            type_frequency: HashMap::new(),
-            value_examples: HashMap::new(),
         })
     }
 
@@ -87,12 +83,12 @@ impl SchemaInferrer {
         for (endpoint, endpoint_samples) in grouped_samples {
             // Analyze request schemas
             if let Some(request_schema) = self.infer_request_schema(&endpoint_samples).await? {
-                schemas.insert(format!("{}_request", endpoint), request_schema);
+                schemas.insert(format!("{endpoint}_request"), request_schema);
             }
 
             // Analyze response schemas
             if let Some(response_schema) = self.infer_response_schema(&endpoint_samples).await? {
-                schemas.insert(format!("{}_response", endpoint), response_schema);
+                schemas.insert(format!("{endpoint}_response"), response_schema);
             }
         }
 
@@ -245,7 +241,7 @@ impl SchemaInferrer {
             }
             Value::Array(arr) => {
                 if let Some(first) = arr.first() {
-                    let element_path = format!("{}[]", path);
+                    let element_path = format!("{path}[]");
                     self.analyze_value(&element_path, first, analysis);
                 }
                 analysis
@@ -258,7 +254,7 @@ impl SchemaInferrer {
                     let field_path = if path.is_empty() {
                         key.clone()
                     } else {
-                        format!("{}.{}", path, key)
+                        format!("{path}.{key}")
                     };
                     self.analyze_value(&field_path, val, analysis);
                 }
@@ -325,6 +321,7 @@ impl SchemaInferrer {
     }
 
     /// Convert FieldType to JSON schema
+    #[allow(clippy::only_used_in_recursion)]
     fn type_to_json_schema(&self, field_type: &FieldType) -> Value {
         let mut schema = Map::new();
 

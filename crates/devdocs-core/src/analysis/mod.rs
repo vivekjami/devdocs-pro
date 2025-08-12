@@ -9,7 +9,7 @@ pub mod schema_inference;
 pub mod traffic_analyzer;
 
 use crate::errors::DevDocsError;
-use crate::models::{ApiEndpoint, HttpRequest, HttpResponse, TrafficSample};
+use crate::models::{ApiEndpoint, TrafficSample};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;

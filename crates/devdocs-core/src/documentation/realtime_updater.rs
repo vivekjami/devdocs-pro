@@ -202,7 +202,7 @@ impl RealtimeUpdater {
             if !changes.breaking_changes.is_empty() {
                 let event = UpdateEvent::BreakingChange {
                     change_type: BreakingChangeType::FieldTypeChanged,
-                    description: format!("Schema '{}' has breaking changes", name),
+                    description: format!("Schema '{name}' has breaking changes"),
                     affected_endpoints: self.find_endpoints_using_schema(&name),
                     timestamp: chrono::Utc::now(),
                 };
@@ -335,7 +335,7 @@ impl RealtimeUpdater {
                     changes.fields_removed.push(field_name.clone());
                     changes
                         .breaking_changes
-                        .push(format!("Field '{}' was removed", field_name));
+                        .push(format!("Field '{field_name}' was removed"));
                 }
             }
 
@@ -352,8 +352,7 @@ impl RealtimeUpdater {
                         ) {
                             if prev_type != curr_type {
                                 changes.breaking_changes.push(format!(
-                                    "Field '{}' type changed from {} to {}",
-                                    field_name, prev_type, curr_type
+                                    "Field '{field_name}' type changed from {prev_type} to {curr_type}"
                                 ));
                             }
                         }
@@ -371,7 +370,7 @@ impl RealtimeUpdater {
                         if !prev_required.contains(required_field) {
                             changes
                                 .breaking_changes
-                                .push(format!("Field '{}' is now required", field_name));
+                                .push(format!("Field '{field_name}' is now required"));
                         }
                     }
                 }

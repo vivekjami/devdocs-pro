@@ -128,7 +128,7 @@ where
                                 id: Uuid::new_v4(),
                                 method: this.method.clone(),
                                 path: this.path.clone(),
-                                query_params: devdocs_core::utils::parse_query_params(&this.query),
+                                query_params: devdocs_core::utils::parse_query_params(this.query),
                                 headers: this.headers.clone(),
                                 body: None, // Will be captured in body processing
                                 timestamp: Utc::now(),
@@ -157,7 +157,7 @@ where
                                 request: http_request,
                                 response: Some(http_response),
                                 endpoint_pattern: devdocs_core::utils::extract_endpoint_pattern(
-                                    &this.path,
+                                    this.path,
                                 ),
                                 ai_analysis: None, // Will be populated by AI processor
                             };

@@ -125,18 +125,18 @@ pub struct PiiDetector {
 struct CompiledPattern {
     regex: Regex,
     confidence: f64,
-    name: String,
+    _name: String, // Reserved for future pattern naming
 }
 
 struct MlPiiModel {
     // Placeholder for ML model - in production would use actual ML framework
-    model_version: String,
-    confidence_threshold: f64,
+    _model_version: String,     // Reserved for future ML implementation
+    _confidence_threshold: f64, // Reserved for future ML implementation
 }
 
 struct ContextAnalyzer {
     field_name_patterns: HashMap<PiiType, Vec<String>>,
-    value_patterns: HashMap<PiiType, Vec<String>>,
+    _value_patterns: HashMap<PiiType, Vec<String>>, // Reserved for future context analysis
 }
 
 impl PiiDetector {
@@ -334,7 +334,7 @@ impl PiiDetector {
                         ))
                     })?,
                     confidence,
-                    name: name.to_string(),
+                    _name: name.to_string(),
                 })
             })
             .collect();
@@ -609,8 +609,8 @@ impl PiiDetector {
     fn initialize_ml_model(&mut self) -> Result<(), DevDocsError> {
         // Placeholder for ML model initialization
         self.ml_model = Some(MlPiiModel {
-            model_version: "1.0.0".to_string(),
-            confidence_threshold: self.config.confidence_threshold,
+            _model_version: "1.0.0".to_string(),
+            _confidence_threshold: self.config.confidence_threshold,
         });
         Ok(())
     }
@@ -728,7 +728,7 @@ impl ContextAnalyzer {
 
         Self {
             field_name_patterns,
-            value_patterns: HashMap::new(),
+            _value_patterns: HashMap::new(),
         }
     }
 

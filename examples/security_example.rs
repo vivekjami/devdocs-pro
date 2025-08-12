@@ -154,7 +154,7 @@ async fn demo_authentication(
             );
         }
         Err(e) => {
-            println!("  ⚠️  Authentication failed (expected in demo): {}", e);
+            println!("  ⚠️  Authentication failed (expected in demo): {e}");
         }
     }
 
@@ -195,9 +195,8 @@ async fn demo_data_protection(
 
     for violation in &validation_result.violations {
         println!(
-            "    - ⚠️  {}: {}",
-            format!("{:?}", violation.violation_type),
-            violation.description
+            "    - ⚠️  {:?}: {}",
+            violation.violation_type, violation.description
         );
     }
 
@@ -223,7 +222,7 @@ async fn demo_encryption() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test data encryption
     let sensitive_data = "This is highly sensitive information that must be encrypted";
-    println!("  📝 Original data: {}", sensitive_data);
+    println!("  📝 Original data: {sensitive_data}");
 
     let encrypted_data = encryptor.encrypt(sensitive_data.as_bytes(), "demo_context")?;
     println!("  🔒 Data encrypted successfully");
@@ -232,7 +231,7 @@ async fn demo_encryption() -> Result<(), Box<dyn std::error::Error>> {
     // Test decryption
     let decrypted_data = encryptor.decrypt(&encrypted_data)?;
     let decrypted_string = String::from_utf8(decrypted_data)?;
-    println!("  🔓 Data decrypted: {}", decrypted_string);
+    println!("  🔓 Data decrypted: {decrypted_string}");
 
     // Test key rotation
     if encryptor.should_rotate_key() {
@@ -327,8 +326,8 @@ async fn demo_rate_limiting() -> Result<(), Box<dyn std::error::Error>> {
     let test_ip = "192.168.1.200";
     for i in 1..=5 {
         match rate_limiter.check_rate_limit(test_ip).await {
-            Ok(()) => println!("  ✅ Request {} from {} allowed", i, test_ip),
-            Err(e) => println!("  ❌ Request {} from {} blocked: {}", i, test_ip, e),
+            Ok(()) => println!("  ✅ Request {i} from {test_ip} allowed"),
+            Err(e) => println!("  ❌ Request {i} from {test_ip} blocked: {e}"),
         }
     }
 
@@ -338,8 +337,8 @@ async fn demo_rate_limiting() -> Result<(), Box<dyn std::error::Error>> {
     let test_user = "demo_user_123";
     for i in 1..=3 {
         match rate_limiter.check_user_rate_limit(test_user).await {
-            Ok(()) => println!("  ✅ Request {} from user {} allowed", i, test_user),
-            Err(e) => println!("  ❌ Request {} from user {} blocked: {}", i, test_user, e),
+            Ok(()) => println!("  ✅ Request {i} from user {test_user} allowed"),
+            Err(e) => println!("  ❌ Request {i} from user {test_user} blocked: {e}"),
         }
     }
 
@@ -388,7 +387,7 @@ async fn demo_compliance_checking() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     for (standard, status) in &compliance_result.standards_status {
-        println!("    - {}: {:?}", standard, status);
+        println!("    - {standard}: {status:?}");
     }
 
     for recommendation in &compliance_result.recommendations {
@@ -487,7 +486,7 @@ async fn demo_secrets_management() -> Result<(), Box<dyn std::error::Error>> {
             SecretType::ApiKey,
         )
         .await?;
-    println!("  ✅ API key stored with ID: {}", api_key_id);
+    println!("  ✅ API key stored with ID: {api_key_id}");
 
     let db_password_id = secrets_manager
         .store_secret(
@@ -496,7 +495,7 @@ async fn demo_secrets_management() -> Result<(), Box<dyn std::error::Error>> {
             SecretType::DatabasePassword,
         )
         .await?;
-    println!("  ✅ Database password stored with ID: {}", db_password_id);
+    println!("  ✅ Database password stored with ID: {db_password_id}");
 
     // Retrieve secrets
     println!("  🔍 Retrieving secrets...");

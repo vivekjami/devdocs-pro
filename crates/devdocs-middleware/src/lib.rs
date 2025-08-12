@@ -13,9 +13,7 @@ pub use interceptor::{DevDocsLayer, HttpInterceptor};
 pub use processor::TrafficProcessor;
 
 use devdocs_core::{
-    analysis::{AnalysisConfig, TrafficAnalyzer},
-    documentation::{DocumentationConfig, DocumentationGenerator},
-    Config, TrafficSample,
+    analysis::AnalysisConfig, documentation::DocumentationConfig, Config, TrafficSample,
 };
 use std::sync::Arc;
 use tokio::sync::mpsc;

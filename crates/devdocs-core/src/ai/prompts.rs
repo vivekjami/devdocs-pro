@@ -72,15 +72,14 @@ impl GeminiPrompt {
 
         let content = format!(
             "Analyze these JSON samples and generate a comprehensive JSON schema:\n\n\
-             {}\n\n\
+             {samples_text}\n\n\
              Generate a JSON Schema that describes the structure, including:\n\
              1. Data types for all fields\n\
              2. Required vs optional fields\n\
              3. Validation constraints (min/max, patterns, etc.)\n\
              4. Field descriptions based on usage patterns\n\
              5. Enum values where applicable\n\n\
-             Format your response as a valid JSON Schema object.",
-            samples_text
+             Format your response as a valid JSON Schema object."
         );
 
         Self {
@@ -144,7 +143,7 @@ impl GeminiPrompt {
                                 .request
                                 .headers
                                 .iter()
-                                .map(|(k, v)| format!("{}: {}", k, v))
+                                .map(|(k, v)| format!("{k}: {v}"))
                                 .collect::<Vec<_>>()
                                 .join(", "),
                             body.captured_size()
@@ -177,7 +176,7 @@ impl GeminiPrompt {
                                 response
                                     .headers
                                     .iter()
-                                    .map(|(k, v)| format!("{}: {}", k, v))
+                                    .map(|(k, v)| format!("{k}: {v}"))
                                     .collect::<Vec<_>>()
                                     .join(", "),
                                 body.captured_size()
@@ -212,7 +211,7 @@ impl GeminiPrompt {
 
         status_list
             .into_iter()
-            .map(|(code, count)| format!("{}: {} times", code, count))
+            .map(|(code, count)| format!("{code}: {count} times"))
             .collect::<Vec<_>>()
             .join(", ")
     }

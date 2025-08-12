@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Err(e) => {
-            println!("   ❌ Schema inference failed: {}", e);
+            println!("   ❌ Schema inference failed: {e}");
             return Err(e.into());
         }
     }

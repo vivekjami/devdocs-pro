@@ -91,15 +91,14 @@ impl HtmlGenerator {
 
         if let Some(logo_url) = &self.config.logo_url {
             header.push_str(&format!(
-                "<img src=\"{}\" alt=\"Logo\" class=\"logo\">",
-                logo_url
+                "<img src=\"{logo_url}\" alt=\"Logo\" class=\"logo\">"
             ));
         }
 
         header.push_str(&format!("<h1>{}</h1>", self.config.title));
 
         if let Some(description) = &self.config.description {
-            header.push_str(&format!("<p class=\"description\">{}</p>", description));
+            header.push_str(&format!("<p class=\"description\">{description}</p>"));
         }
 
         header.push_str(&format!(
@@ -228,8 +227,8 @@ impl HtmlGenerator {
     fn generate_path_documentation(&self, path: &str, path_item: &Value) -> String {
         let mut path_doc = String::new();
 
-        path_doc.push_str(&format!("<div class=\"path-item\" data-path=\"{}\">", path));
-        path_doc.push_str(&format!("<h3 class=\"path-title\">{}</h3>", path));
+        path_doc.push_str(&format!("<div class=\"path-item\" data-path=\"{path}\">"));
+        path_doc.push_str(&format!("<h3 class=\"path-title\">{path}</h3>"));
 
         if let Some(path_obj) = path_item.as_object() {
             for (method, operation) in path_obj {
@@ -252,14 +251,12 @@ impl HtmlGenerator {
 
         let method_upper = method.to_uppercase();
         op_doc.push_str(&format!(
-            "<div class=\"operation\" data-method=\"{}\" data-path=\"{}\">",
-            method, path
+            "<div class=\"operation\" data-method=\"{method}\" data-path=\"{path}\">"
         ));
 
         // Method and summary
         op_doc.push_str(&format!(
-            "<div class=\"operation-header\"><span class=\"method method-{}\">{}</span>",
-            method, method_upper
+            "<div class=\"operation-header\"><span class=\"method method-{method}\">{method_upper}</span>"
         ));
 
         if let Some(summary) = operation.get("summary") {
@@ -362,7 +359,7 @@ impl HtmlGenerator {
         if let Some(content) = request_body.get("content") {
             if let Some(content_obj) = content.as_object() {
                 for (media_type, media_obj) in content_obj {
-                    body_doc.push_str(&format!("<h5>{}</h5>", media_type));
+                    body_doc.push_str(&format!("<h5>{media_type}</h5>"));
 
                     if let Some(schema) = media_obj.get("schema") {
                         body_doc.push_str("<pre class=\"schema\"><code>");
@@ -386,8 +383,7 @@ impl HtmlGenerator {
         if let Some(responses_obj) = responses.as_object() {
             for (status_code, response) in responses_obj {
                 responses_doc.push_str(&format!(
-                    "<div class=\"response-item\"><h5>HTTP {}</h5>",
-                    status_code
+                    "<div class=\"response-item\"><h5>HTTP {status_code}</h5>"
                 ));
 
                 if let Some(description) = response.get("description") {
@@ -398,7 +394,7 @@ impl HtmlGenerator {
                 if let Some(content) = response.get("content") {
                     if let Some(content_obj) = content.as_object() {
                         for (media_type, media_obj) in content_obj {
-                            responses_doc.push_str(&format!("<h6>{}</h6>", media_type));
+                            responses_doc.push_str(&format!("<h6>{media_type}</h6>"));
 
                             if let Some(schema) = media_obj.get("schema") {
                                 responses_doc.push_str("<pre class=\"schema\"><code>");
@@ -425,8 +421,7 @@ impl HtmlGenerator {
         try_it.push_str("<div class=\"try-it-section\">");
         try_it.push_str("<h4>Try It Out</h4>");
         try_it.push_str(&format!(
-            "<form class=\"try-it-form\" data-method=\"{}\" data-path=\"{}\">",
-            method, path
+            "<form class=\"try-it-form\" data-method=\"{method}\" data-path=\"{path}\">"
         ));
 
         // Parameter inputs
@@ -495,8 +490,7 @@ impl HtmlGenerator {
                 if let Some(schemas_map) = schemas_obj.as_object() {
                     for (schema_name, schema) in schemas_map {
                         schemas.push_str(&format!(
-                            "<div class=\"schema-item\"><h3>{}</h3>",
-                            schema_name
+                            "<div class=\"schema-item\"><h3>{schema_name}</h3>"
                         ));
 
                         schemas.push_str("<pre class=\"schema\"><code>");
@@ -528,8 +522,7 @@ impl HtmlGenerator {
         if let Some(contact) = &self.config.contact {
             if let Some(email) = &contact.email {
                 footer.push_str(&format!(
-                    "<p>Contact: <a href=\"mailto:{}\">{}</a></p>",
-                    email, email
+                    "<p>Contact: <a href=\"mailto:{email}\">{email}</a></p>"
                 ));
             }
         }
@@ -569,16 +562,16 @@ impl HtmlGenerator {
             } else if in_code_block {
                 html.push_str(line);
                 html.push('\n');
-            } else if line.starts_with("# ") {
-                html.push_str(&format!("<h1>{}</h1>", &line[2..]));
-            } else if line.starts_with("## ") {
-                html.push_str(&format!("<h2>{}</h2>", &line[3..]));
-            } else if line.starts_with("### ") {
-                html.push_str(&format!("<h3>{}</h3>", &line[4..]));
-            } else if line.starts_with("- ") {
-                html.push_str(&format!("<li>{}</li>", &line[2..]));
+            } else if let Some(title) = line.strip_prefix("# ") {
+                html.push_str(&format!("<h1>{title}</h1>"));
+            } else if let Some(title) = line.strip_prefix("## ") {
+                html.push_str(&format!("<h2>{title}</h2>"));
+            } else if let Some(title) = line.strip_prefix("### ") {
+                html.push_str(&format!("<h3>{title}</h3>"));
+            } else if let Some(item) = line.strip_prefix("- ") {
+                html.push_str(&format!("<li>{item}</li>"));
             } else if !line.trim().is_empty() {
-                html.push_str(&format!("<p>{}</p>", line));
+                html.push_str(&format!("<p>{line}</p>"));
             }
         }
 

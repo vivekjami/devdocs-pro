@@ -189,10 +189,10 @@ impl OpenApiGenerator {
             .collect();
 
         if path_parts.is_empty() {
-            format!("{}Root", method)
+            format!("{method}Root")
         } else {
             let resource = path_parts.join("_");
-            format!("{}_{}", method, resource)
+            format!("{method}_{resource}")
         }
     }
 
@@ -204,16 +204,16 @@ impl OpenApiGenerator {
         let summary = match method.as_str() {
             "GET" => {
                 if path.contains("{id}") {
-                    format!("Get a specific resource")
+                    "Get a specific resource".to_string()
                 } else {
-                    format!("List resources")
+                    "List resources".to_string()
                 }
             }
-            "POST" => format!("Create a new resource"),
-            "PUT" => format!("Update a resource"),
-            "PATCH" => format!("Partially update a resource"),
-            "DELETE" => format!("Delete a resource"),
-            _ => format!("{} operation", method),
+            "POST" => "Create a new resource".to_string(),
+            "PUT" => "Update a resource".to_string(),
+            "PATCH" => "Partially update a resource".to_string(),
+            "DELETE" => "Delete a resource".to_string(),
+            _ => format!("{method} operation"),
         };
 
         let description = format!(
@@ -262,37 +262,32 @@ impl OpenApiGenerator {
         }
 
         // Add common query parameters based on method
-        match endpoint.method.as_str() {
-            "GET" => {
-                if !endpoint.path_pattern.contains("{id}") {
-                    // List endpoint - add pagination parameters
-                    parameters.push(json!({
-                        "name": "page",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "default": 1
-                        },
-                        "description": "Page number for pagination"
-                    }));
+        if endpoint.method.as_str() == "GET" && !endpoint.path_pattern.contains("{id}") {
+            // List endpoint - add pagination parameters
+            parameters.push(json!({
+                "name": "page",
+                "in": "query",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                },
+                "description": "Page number for pagination"
+            }));
 
-                    parameters.push(json!({
-                        "name": "limit",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100,
-                            "default": 20
-                        },
-                        "description": "Number of items per page"
-                    }));
-                }
-            }
-            _ => {}
+            parameters.push(json!({
+                "name": "limit",
+                "in": "query",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                },
+                "description": "Number of items per page"
+            }));
         }
 
         parameters
@@ -354,7 +349,7 @@ impl OpenApiGenerator {
         let mut responses = Map::new();
 
         // Analyze status codes from endpoint statistics
-        for (status_code, _count) in &endpoint.status_codes {
+        for status_code in endpoint.status_codes.keys() {
             let status_str = status_code.to_string();
             let description = self.get_status_description(*status_code);
 
@@ -424,7 +419,7 @@ impl OpenApiGenerator {
             409 => "Conflict - Resource conflict".to_string(),
             422 => "Unprocessable Entity - Validation error".to_string(),
             500 => "Internal Server Error - Server error".to_string(),
-            _ => format!("HTTP {}", status_code),
+            _ => format!("HTTP {status_code}"),
         }
     }
 

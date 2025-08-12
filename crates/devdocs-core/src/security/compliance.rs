@@ -638,29 +638,26 @@ impl ComplianceChecker {
         let mut violations = Vec::new();
 
         // Check if personal data requires consent
-        if self.contains_personal_data(data) {
-            if !self.has_valid_consent(context) {
-                violations.push(SecurityViolation {
-                    violation_type: ViolationType::ComplianceViolation,
-                    severity: Severity::High,
-                    description: "Processing personal data without valid consent".to_string(),
-                    field_path: None,
-                    detected_at: Utc::now(),
-                });
+        if self.contains_personal_data(data) && !self.has_valid_consent(context) {
+            violations.push(SecurityViolation {
+                violation_type: ViolationType::ComplianceViolation,
+                severity: Severity::High,
+                description: "Processing personal data without valid consent".to_string(),
+                field_path: None,
+                detected_at: Utc::now(),
+            });
 
-                result.recommendations.push(ComplianceRecommendation {
-                    standard: "GDPR".to_string(),
-                    requirement: "Article 6 - Lawfulness of processing".to_string(),
-                    description: "Ensure valid legal basis for processing personal data"
-                        .to_string(),
-                    priority: RecommendationPriority::High,
-                    remediation_steps: vec![
-                        "Implement consent management system".to_string(),
-                        "Document lawful basis for processing".to_string(),
-                        "Provide clear privacy notices".to_string(),
-                    ],
-                });
-            }
+            result.recommendations.push(ComplianceRecommendation {
+                standard: "GDPR".to_string(),
+                requirement: "Article 6 - Lawfulness of processing".to_string(),
+                description: "Ensure valid legal basis for processing personal data".to_string(),
+                priority: RecommendationPriority::High,
+                remediation_steps: vec![
+                    "Implement consent management system".to_string(),
+                    "Document lawful basis for processing".to_string(),
+                    "Provide clear privacy notices".to_string(),
+                ],
+            });
         }
 
         // Check data retention compliance
@@ -776,35 +773,33 @@ impl ComplianceChecker {
         if config
             .trust_service_criteria
             .contains(&TrustServiceCriteria::Security)
+            && !context.requires_audit()
         {
-            if !context.requires_audit() {
-                violations.push(SecurityViolation {
-                    violation_type: ViolationType::ComplianceViolation,
-                    severity: Severity::Medium,
-                    description: "Security events must be logged for SOC 2 compliance".to_string(),
-                    field_path: None,
-                    detected_at: Utc::now(),
-                });
-            }
+            violations.push(SecurityViolation {
+                violation_type: ViolationType::ComplianceViolation,
+                severity: Severity::Medium,
+                description: "Security events must be logged for SOC 2 compliance".to_string(),
+                field_path: None,
+                detected_at: Utc::now(),
+            });
         }
 
         // Check confidentiality criteria
         if config
             .trust_service_criteria
             .contains(&TrustServiceCriteria::Confidentiality)
+            && !context.requires_encryption()
         {
-            if !context.requires_encryption() {
-                result.recommendations.push(ComplianceRecommendation {
-                    standard: "SOC2".to_string(),
-                    requirement: "Confidentiality Criteria".to_string(),
-                    description: "Confidential data should be encrypted".to_string(),
-                    priority: RecommendationPriority::High,
-                    remediation_steps: vec![
-                        "Implement data encryption".to_string(),
-                        "Classify data sensitivity levels".to_string(),
-                    ],
-                });
-            }
+            result.recommendations.push(ComplianceRecommendation {
+                standard: "SOC2".to_string(),
+                requirement: "Confidentiality Criteria".to_string(),
+                description: "Confidential data should be encrypted".to_string(),
+                priority: RecommendationPriority::High,
+                remediation_steps: vec![
+                    "Implement data encryption".to_string(),
+                    "Classify data sensitivity levels".to_string(),
+                ],
+            });
         }
 
         result.violations.extend(violations);

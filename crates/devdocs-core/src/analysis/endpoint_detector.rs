@@ -41,14 +41,14 @@ impl EndpointDetector {
         let uuid_regex = Regex::new(
             r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
         )
-        .map_err(|e| DevDocsError::Configuration(format!("Failed to compile UUID regex: {}", e)))?;
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to compile UUID regex: {e}")))?;
 
         let number_regex = Regex::new(r"/\d+").map_err(|e| {
-            DevDocsError::Configuration(format!("Failed to compile number regex: {}", e))
+            DevDocsError::Configuration(format!("Failed to compile number regex: {e}"))
         })?;
 
         let date_regex = Regex::new(r"/\d{4}-\d{2}-\d{2}").map_err(|e| {
-            DevDocsError::Configuration(format!("Failed to compile date regex: {}", e))
+            DevDocsError::Configuration(format!("Failed to compile date regex: {e}"))
         })?;
 
         Ok(Self {
@@ -346,8 +346,8 @@ mod tests {
         for i in 1..=5 {
             let request = HttpRequest::new(
                 "GET".to_string(),
-                format!("/users/{}", i),
-                format!("corr-{}", i),
+                format!("/users/{i}"),
+                format!("corr-{i}"),
             );
             let response = HttpResponse::new(request.id, 200).with_processing_time(100);
 

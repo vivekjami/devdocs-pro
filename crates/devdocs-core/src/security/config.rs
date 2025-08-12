@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// Master security configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MasterSecurityConfig {
     /// Global security settings
     pub global: GlobalSecuritySettings,
@@ -185,24 +185,6 @@ pub struct MonitoringOverride {
     pub anomaly_detection_enabled: Option<bool>,
 }
 
-impl Default for MasterSecurityConfig {
-    fn default() -> Self {
-        Self {
-            global: GlobalSecuritySettings::default(),
-            encryption: EncryptionConfig::default(),
-            pii_protection: PiiProtectionConfig::default(),
-            authentication: AuthConfig::default(),
-            audit: AuditConfig::default(),
-            rate_limiting: RateLimitingConfig::default(),
-            compliance: ComplianceConfig::default(),
-            secrets: SecretsConfig::default(),
-            monitoring: SecurityMonitoringConfig::default(),
-            data_protection: DataProtectionConfig::default(),
-            environment_overrides: HashMap::new(),
-        }
-    }
-}
-
 impl Default for GlobalSecuritySettings {
     fn default() -> Self {
         Self {
@@ -313,6 +295,12 @@ pub struct SecurityConfigManager {
     environment: String,
 }
 
+impl Default for SecurityConfigManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SecurityConfigManager {
     /// Create a new configuration manager
     pub fn new() -> Self {
@@ -326,20 +314,19 @@ impl SecurityConfigManager {
     /// Load configuration from file
     pub fn load_from_file<P: Into<PathBuf>>(path: P) -> Result<Self, DevDocsError> {
         let path = path.into();
-        let content = std::fs::read_to_string(&path).map_err(|e| {
-            DevDocsError::Configuration(format!("Failed to read config file: {}", e))
-        })?;
+        let content = std::fs::read_to_string(&path)
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to read config file: {e}")))?;
 
         let config: MasterSecurityConfig = if path.extension().and_then(|s| s.to_str())
             == Some("yaml")
             || path.extension().and_then(|s| s.to_str()) == Some("yml")
         {
             serde_yaml::from_str(&content).map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to parse YAML config: {}", e))
+                DevDocsError::Configuration(format!("Failed to parse YAML config: {e}"))
             })?
         } else {
             serde_json::from_str(&content).map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to parse JSON config: {}", e))
+                DevDocsError::Configuration(format!("Failed to parse JSON config: {e}"))
             })?
         };
 
@@ -409,16 +396,16 @@ impl SecurityConfigManager {
             || path.extension().and_then(|s| s.to_str()) == Some("yml")
         {
             serde_yaml::to_string(&self.config).map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to serialize YAML config: {}", e))
+                DevDocsError::Configuration(format!("Failed to serialize YAML config: {e}"))
             })?
         } else {
             serde_json::to_string_pretty(&self.config).map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to serialize JSON config: {}", e))
+                DevDocsError::Configuration(format!("Failed to serialize JSON config: {e}"))
             })?
         };
 
         std::fs::write(&path, content).map_err(|e| {
-            DevDocsError::Configuration(format!("Failed to write config file: {}", e))
+            DevDocsError::Configuration(format!("Failed to write config file: {e}"))
         })?;
 
         Ok(())
@@ -461,8 +448,7 @@ impl SecurityConfigManager {
                         "chacha20poly1305" => EncryptionAlgorithm::ChaCha20Poly1305,
                         _ => {
                             return Err(DevDocsError::Configuration(format!(
-                                "Unknown encryption algorithm: {}",
-                                algorithm
+                                "Unknown encryption algorithm: {algorithm}"
                             )))
                         }
                     };
@@ -510,8 +496,7 @@ impl SecurityConfigManager {
                 "high_security" => SecurityMode::HighSecurity,
                 _ => {
                     return Err(DevDocsError::Configuration(format!(
-                        "Invalid security mode: {}",
-                        mode
+                        "Invalid security mode: {mode}"
                     )))
                 }
             };
@@ -573,12 +558,10 @@ impl SecurityConfigManager {
     /// Validate a configuration object
     fn validate_config(&self, config: &MasterSecurityConfig) -> Result<(), DevDocsError> {
         // Validate encryption configuration
-        if config.encryption.enabled {
-            if config.encryption.key_rotation_hours == 0 {
-                return Err(DevDocsError::Configuration(
-                    "Key rotation hours must be greater than 0".to_string(),
-                ));
-            }
+        if config.encryption.enabled && config.encryption.key_rotation_hours == 0 {
+            return Err(DevDocsError::Configuration(
+                "Key rotation hours must be greater than 0".to_string(),
+            ));
         }
 
         // Validate authentication configuration
@@ -596,21 +579,17 @@ impl SecurityConfigManager {
         }
 
         // Validate rate limiting configuration
-        if config.rate_limiting.enabled {
-            if config.rate_limiting.global.requests_per_second == 0 {
-                return Err(DevDocsError::Configuration(
-                    "Global requests per second must be greater than 0".to_string(),
-                ));
-            }
+        if config.rate_limiting.enabled && config.rate_limiting.global.requests_per_second == 0 {
+            return Err(DevDocsError::Configuration(
+                "Global requests per second must be greater than 0".to_string(),
+            ));
         }
 
         // Validate audit configuration
-        if config.audit.enabled {
-            if config.audit.retention.retention_days == 0 {
-                return Err(DevDocsError::Configuration(
-                    "Audit retention days must be greater than 0".to_string(),
-                ));
-            }
+        if config.audit.enabled && config.audit.retention.retention_days == 0 {
+            return Err(DevDocsError::Configuration(
+                "Audit retention days must be greater than 0".to_string(),
+            ));
         }
 
         // Validate compliance configuration
@@ -621,12 +600,10 @@ impl SecurityConfigManager {
         }
 
         // Validate monitoring configuration
-        if config.monitoring.enabled {
-            if config.monitoring.real_time.buffer_size == 0 {
-                return Err(DevDocsError::Configuration(
-                    "Monitoring buffer size must be greater than 0".to_string(),
-                ));
-            }
+        if config.monitoring.enabled && config.monitoring.real_time.buffer_size == 0 {
+            return Err(DevDocsError::Configuration(
+                "Monitoring buffer size must be greater than 0".to_string(),
+            ));
         }
 
         Ok(())
@@ -713,7 +690,7 @@ mod tests {
 
     #[test]
     fn test_config_file_operations() {
-        let config = MasterSecurityConfig::default();
+        let _config = MasterSecurityConfig::default();
         let temp_file = NamedTempFile::new().unwrap();
 
         let manager = SecurityConfigManager::new();

@@ -257,7 +257,7 @@ mod tests {
     #[test]
     fn test_error_debug() {
         let error = DevDocsError::Config("Test".to_string());
-        let debug_str = format!("{:?}", error);
+        let debug_str = format!("{error:?}");
         assert!(debug_str.contains("Config"));
         assert!(debug_str.contains("Test"));
     }
@@ -299,7 +299,7 @@ mod tests {
         let mut codes = std::collections::HashSet::new();
         for error in errors {
             let code = error.error_code();
-            assert!(codes.insert(code), "Duplicate error code: {}", code);
+            assert!(codes.insert(code), "Duplicate error code: {code}");
         }
     }
 }

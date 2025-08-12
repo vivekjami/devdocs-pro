@@ -292,7 +292,7 @@ pub trait AuditStorage {
 /// File system audit storage implementation
 pub struct FileSystemAuditStorage {
     base_path: std::path::PathBuf,
-    encrypt_at_rest: bool,
+    _encrypt_at_rest: bool, // Reserved for future encryption implementation
     enable_compression: bool,
 }
 
@@ -579,12 +579,12 @@ impl FileSystemAuditStorage {
     ) -> Result<Self, DevDocsError> {
         let path = std::path::PathBuf::from(base_path);
         std::fs::create_dir_all(&path).map_err(|e| {
-            DevDocsError::Storage(format!("Failed to create audit log directory: {}", e))
+            DevDocsError::Storage(format!("Failed to create audit log directory: {e}"))
         })?;
 
         Ok(Self {
             base_path: path,
-            encrypt_at_rest,
+            _encrypt_at_rest: encrypt_at_rest,
             enable_compression,
         })
     }
@@ -599,8 +599,7 @@ impl FileSystemAuditStorage {
 impl AuditStorage for FileSystemAuditStorage {
     async fn store_event(&mut self, event: &AuditEvent) -> Result<(), DevDocsError> {
         let log_file = self.get_log_file_path(&event.timestamp);
-        let event_json =
-            serde_json::to_string(event).map_err(|e| DevDocsError::Serialization(e))?;
+        let event_json = serde_json::to_string(event).map_err(DevDocsError::Serialization)?;
 
         let content = event_json + "\n";
 
@@ -612,10 +611,10 @@ impl AuditStorage for FileSystemAuditStorage {
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             encoder
                 .write_all(content.as_bytes())
-                .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?;
+                .map_err(|e| DevDocsError::Storage(format!("Compression failed: {e}")))?;
             encoder
                 .finish()
-                .map_err(|e| DevDocsError::Storage(format!("Compression failed: {}", e)))?
+                .map_err(|e| DevDocsError::Storage(format!("Compression failed: {e}")))?
         } else {
             content.as_bytes().to_vec()
         };
@@ -625,10 +624,10 @@ impl AuditStorage for FileSystemAuditStorage {
             .append(true)
             .open(&log_file)
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to open audit log file: {}", e)))?
+            .map_err(|e| DevDocsError::Storage(format!("Failed to open audit log file: {e}")))?
             .write_all(&data_to_write)
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to write audit event: {}", e)))?;
+            .map_err(|e| DevDocsError::Storage(format!("Failed to write audit event: {e}")))?;
 
         Ok(())
     }
@@ -645,17 +644,17 @@ impl AuditStorage for FileSystemAuditStorage {
         let mut events = Vec::new();
         let mut entries = tokio::fs::read_dir(&self.base_path)
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read audit directory: {}", e)))?;
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read audit directory: {e}")))?;
 
         while let Some(entry) = entries
             .next_entry()
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))?
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {e}")))?
         {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.starts_with("audit_") && file_name.ends_with(".jsonl") {
                     let file_data = tokio::fs::read(entry.path()).await.map_err(|e| {
-                        DevDocsError::Storage(format!("Failed to read audit file: {}", e))
+                        DevDocsError::Storage(format!("Failed to read audit file: {e}"))
                     })?;
 
                     let content = if self.enable_compression {
@@ -665,12 +664,12 @@ impl AuditStorage for FileSystemAuditStorage {
                         let mut decoder = GzDecoder::new(&file_data[..]);
                         let mut decompressed = String::new();
                         decoder.read_to_string(&mut decompressed).map_err(|e| {
-                            DevDocsError::Storage(format!("Failed to decompress audit file: {}", e))
+                            DevDocsError::Storage(format!("Failed to decompress audit file: {e}"))
                         })?;
                         decompressed
                     } else {
                         String::from_utf8(file_data).map_err(|e| {
-                            DevDocsError::Storage(format!("Failed to read audit file: {}", e))
+                            DevDocsError::Storage(format!("Failed to read audit file: {e}"))
                         })?
                     };
 
@@ -764,12 +763,12 @@ impl AuditStorage for FileSystemAuditStorage {
 
         let mut entries = tokio::fs::read_dir(&self.base_path)
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read audit directory: {}", e)))?;
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read audit directory: {e}")))?;
 
         while let Some(entry) = entries
             .next_entry()
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))?
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {e}")))?
         {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.starts_with("audit_") && file_name.ends_with(".jsonl") {
@@ -785,8 +784,7 @@ impl AuditStorage for FileSystemAuditStorage {
                             if file_datetime < cutoff_date {
                                 tokio::fs::remove_file(entry.path()).await.map_err(|e| {
                                     DevDocsError::Storage(format!(
-                                        "Failed to delete old audit file: {}",
-                                        e
+                                        "Failed to delete old audit file: {e}"
                                     ))
                                 })?;
                                 deleted_count += 1;
@@ -855,7 +853,7 @@ impl IntegrityVerifier {
         use ring::rand::{SecureRandom, SystemRandom};
         let rng = SystemRandom::new();
         rng.fill(&mut secret_key).map_err(|e| {
-            DevDocsError::Encryption(format!("Failed to generate integrity key: {}", e))
+            DevDocsError::Encryption(format!("Failed to generate integrity key: {e}"))
         })?;
 
         Ok(Self { secret_key })
@@ -870,10 +868,10 @@ impl IntegrityVerifier {
         event_for_hash.integrity_hash = None;
 
         let event_json =
-            serde_json::to_string(&event_for_hash).map_err(|e| DevDocsError::Serialization(e))?;
+            serde_json::to_string(&event_for_hash).map_err(DevDocsError::Serialization)?;
 
         let mut mac = Hmac::<Sha256>::new_from_slice(&self.secret_key)
-            .map_err(|e| DevDocsError::Encryption(format!("Failed to create HMAC: {}", e)))?;
+            .map_err(|e| DevDocsError::Encryption(format!("Failed to create HMAC: {e}")))?;
 
         mac.update(event_json.as_bytes());
         let result = mac.finalize();

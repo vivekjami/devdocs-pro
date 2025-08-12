@@ -22,7 +22,7 @@ impl AIProcessorService {
         traffic_receiver: mpsc::UnboundedReceiver<TrafficSample>,
         gemini_api_key: String,
     ) -> Result<Self, devdocs_core::DevDocsError> {
-        let gemini_client = GeminiClient::new(gemini_api_key);
+        let _gemini_client = GeminiClient::new(gemini_api_key);
         let ai_analyzer = TrafficAnalyzer::new(devdocs_core::analysis::AnalysisConfig::default())?;
 
         Ok(Self {
@@ -171,7 +171,7 @@ mod tests {
     #[tokio::test]
     async fn test_ai_processor_creation() {
         let (_sender, receiver) = mpsc::unbounded_channel();
-        let processor = AIProcessorService::new(receiver, "test-api-key".to_string());
+        let processor = AIProcessorService::new(receiver, "test-api-key".to_string()).unwrap();
 
         assert_eq!(processor.batch_size, 10);
         assert_eq!(processor.batch_timeout, Duration::from_secs(30));

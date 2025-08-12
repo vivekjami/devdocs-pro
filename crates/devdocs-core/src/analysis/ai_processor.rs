@@ -110,7 +110,7 @@ impl AiProcessor {
             .timeout(gemini_config.timeout)
             .build()
             .map_err(|e| {
-                DevDocsError::NetworkError(format!("Failed to create HTTP client: {}", e))
+                DevDocsError::NetworkError(format!("Failed to create HTTP client: {e}"))
             })?;
 
         Ok(Self {
@@ -156,7 +156,7 @@ impl AiProcessor {
             endpoints.len()
         ));
         prompt.push_str(&format!("- Schemas inferred: {}\n", schemas.len()));
-        prompt.push_str("\n");
+        prompt.push('\n');
 
         // Add endpoint information
         if !endpoints.is_empty() {
@@ -172,14 +172,14 @@ impl AiProcessor {
                     success_rate
                 ));
             }
-            prompt.push_str("\n");
+            prompt.push('\n');
         }
 
         // Add schema information
         if !schemas.is_empty() {
             prompt.push_str("## Inferred Schemas\n");
             for (name, schema) in schemas {
-                prompt.push_str(&format!("### {}\n", name));
+                prompt.push_str(&format!("### {name}\n"));
                 prompt.push_str("```json\n");
                 prompt.push_str(&serde_json::to_string_pretty(schema).unwrap_or_default());
                 prompt.push_str("\n```\n\n");
@@ -238,19 +238,18 @@ impl AiProcessor {
             .json(&request)
             .send()
             .await
-            .map_err(|e| DevDocsError::NetworkError(format!("Failed to call Gemini API: {}", e)))?;
+            .map_err(|e| DevDocsError::NetworkError(format!("Failed to call Gemini API: {e}")))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(DevDocsError::NetworkError(format!(
-                "Gemini API returned error {}: {}",
-                status, error_text
+                "Gemini API returned error {status}: {error_text}"
             )));
         }
 
         let gemini_response: GeminiResponse = response.json().await.map_err(|e| {
-            DevDocsError::NetworkError(format!("Failed to parse Gemini response: {}", e))
+            DevDocsError::NetworkError(format!("Failed to parse Gemini response: {e}"))
         })?;
 
         if gemini_response.candidates.is_empty() {
@@ -359,9 +358,8 @@ impl AiProcessor {
         let response = self.call_gemini_api(&prompt).await?;
 
         // Try to parse the response as JSON
-        serde_json::from_str(&response).map_err(|e| {
-            DevDocsError::InvalidRequest(format!("Failed to parse OpenAPI spec: {}", e))
-        })
+        serde_json::from_str(&response)
+            .map_err(|e| DevDocsError::InvalidRequest(format!("Failed to parse OpenAPI spec: {e}")))
     }
 
     /// Update configuration
@@ -523,8 +521,10 @@ mod tests {
     async fn test_disabled_ai_documentation() {
         std::env::set_var("GEMINI_API_KEY", "test_key");
 
-        let mut config = AnalysisConfig::default();
-        config.ai_documentation_enabled = false;
+        let config = AnalysisConfig {
+            ai_documentation_enabled: false,
+            ..Default::default()
+        };
 
         let processor = AiProcessor::new(&config).unwrap();
         let endpoints = vec![];

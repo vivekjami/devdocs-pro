@@ -67,8 +67,6 @@ pub struct SecurityConfig {
     pub compliance: ComplianceConfig,
 }
 
-
-
 /// Security context for request processing
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityContext {

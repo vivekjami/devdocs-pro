@@ -1,7 +1,7 @@
 //! Traffic processor for analyzing samples and generating documentation
 
 use devdocs_core::{
-    analysis::{AnalysisConfig, AnalysisResult, TrafficAnalyzer},
+    analysis::{AnalysisConfig, TrafficAnalyzer},
     documentation::{DocumentationConfig, DocumentationGenerator, GeneratedDocumentation},
     DevDocsError, TrafficSample,
 };
@@ -294,11 +294,8 @@ mod tests {
 
         // Add some test samples
         for i in 0..5 {
-            let request = HttpRequest::new(
-                "GET".to_string(),
-                format!("/test/{}", i),
-                format!("corr-{}", i),
-            );
+            let request =
+                HttpRequest::new("GET".to_string(), format!("/test/{i}"), format!("corr-{i}"));
             let response = HttpResponse::new(request.id, 200).with_processing_time(100 + i * 10);
             let sample =
                 TrafficSample::new(request, "/test/{id}".to_string()).with_response(response);
@@ -315,8 +312,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_should_analyze() {
-        let mut analysis_config = AnalysisConfig::default();
-        analysis_config.min_samples_for_inference = 3;
+        let analysis_config = AnalysisConfig {
+            min_samples_for_inference: 3,
+            ..Default::default()
+        };
 
         let doc_config = DocumentationConfig::default();
         let processor = TrafficProcessor::new(analysis_config, doc_config).unwrap();
@@ -326,11 +325,8 @@ mod tests {
 
         // Add samples
         for i in 0..3 {
-            let request = HttpRequest::new(
-                "GET".to_string(),
-                format!("/test/{}", i),
-                format!("corr-{}", i),
-            );
+            let request =
+                HttpRequest::new("GET".to_string(), format!("/test/{i}"), format!("corr-{i}"));
             let sample = TrafficSample::new(request, "/test/{id}".to_string());
             processor.add_sample(sample).await.unwrap();
         }

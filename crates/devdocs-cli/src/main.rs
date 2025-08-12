@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Config { config: _ } => {
             let config = Config::from_env()?;
             println!("Configuration loaded successfully:");
-            println!("{:#?}", config);
+            println!("{config:#?}");
         }
     }
 

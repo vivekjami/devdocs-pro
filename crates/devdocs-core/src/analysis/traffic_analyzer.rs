@@ -8,12 +8,12 @@ use std::collections::HashMap;
 
 /// Legacy traffic analyzer - kept for compatibility
 pub struct TrafficAnalyzer {
-    config: AnalysisConfig,
+    _config: AnalysisConfig,
 }
 
 impl TrafficAnalyzer {
     pub fn new(config: AnalysisConfig) -> Result<Self> {
-        Ok(Self { config })
+        Ok(Self { _config: config })
     }
 
     pub async fn analyze_endpoint_samples(
@@ -164,7 +164,7 @@ pub struct AIDocumentation {
 impl AIDocumentation {
     pub fn fallback(endpoint: &str, method: &str) -> Self {
         Self {
-            description: format!("{} endpoint for {}", method, endpoint),
+            description: format!("{method} endpoint for {endpoint}"),
             parameters: HashMap::new(),
             request_format: "Request format not analyzed".to_string(),
             response_format: "Response format not analyzed".to_string(),

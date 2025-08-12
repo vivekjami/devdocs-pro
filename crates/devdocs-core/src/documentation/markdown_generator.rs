@@ -35,7 +35,7 @@ impl MarkdownGenerator {
         markdown.push_str(&format!("# {}\n\n", self.config.title));
 
         if let Some(description) = &self.config.description {
-            markdown.push_str(&format!("{}\n\n", description));
+            markdown.push_str(&format!("{description}\n\n"));
         }
 
         // Version and contact info
@@ -43,13 +43,13 @@ impl MarkdownGenerator {
 
         if let Some(contact) = &self.config.contact {
             if let Some(email) = &contact.email {
-                markdown.push_str(&format!("**Contact:** {}\n\n", email));
+                markdown.push_str(&format!("**Contact:** {email}\n\n"));
             }
         }
 
         // Base URL
         if let Some(base_url) = &self.config.base_url {
-            markdown.push_str(&format!("**Base URL:** `{}`\n\n", base_url));
+            markdown.push_str(&format!("**Base URL:** `{base_url}`\n\n"));
         }
 
         // Table of contents
@@ -64,7 +64,7 @@ impl MarkdownGenerator {
             markdown.push_str("- [Data Models](#data-models)\n");
         }
         markdown.push_str("- [Error Handling](#error-handling)\n");
-        markdown.push_str("\n");
+        markdown.push('\n');
 
         // Overview section
         markdown.push_str("## Overview\n\n");
@@ -112,14 +112,14 @@ impl MarkdownGenerator {
         }
 
         for (resource, resource_endpoints) in resource_groups {
-            overview.push_str(&format!("### {} Operations\n\n", resource));
+            overview.push_str(&format!("### {resource} Operations\n\n"));
 
             for endpoint in resource_endpoints {
                 let operation_desc = self.describe_operation(endpoint);
                 overview.push_str(&format!("- **{}** - {}\n", endpoint.method, operation_desc));
             }
 
-            overview.push_str("\n");
+            overview.push('\n');
         }
 
         // API statistics
@@ -128,8 +128,7 @@ impl MarkdownGenerator {
 
         let total_requests: u64 = endpoints.iter().map(|e| e.request_count).sum();
         overview.push_str(&format!(
-            "- **Total Requests Analyzed:** {}\n",
-            total_requests
+            "- **Total Requests Analyzed:** {total_requests}\n"
         ));
 
         let avg_response_time: f64 = endpoints
@@ -138,15 +137,13 @@ impl MarkdownGenerator {
             .sum::<f64>()
             / endpoints.len() as f64;
         overview.push_str(&format!(
-            "- **Average Response Time:** {:.1}ms\n",
-            avg_response_time
+            "- **Average Response Time:** {avg_response_time:.1}ms\n"
         ));
 
         let overall_success_rate: f64 =
             endpoints.iter().map(|e| e.success_rate()).sum::<f64>() / endpoints.len() as f64;
         overview.push_str(&format!(
-            "- **Overall Success Rate:** {:.1}%\n\n",
-            overall_success_rate
+            "- **Overall Success Rate:** {overall_success_rate:.1}%\n\n"
         ));
 
         overview
@@ -205,7 +202,7 @@ impl MarkdownGenerator {
         auth.push_str("```bash\n");
         auth.push_str("curl -H \"Authorization: Bearer YOUR_TOKEN\" \\\n");
         if let Some(base_url) = &self.config.base_url {
-            auth.push_str(&format!("  {}/api/endpoint\n", base_url));
+            auth.push_str(&format!("  {base_url}/api/endpoint\n"));
         } else {
             auth.push_str("  https://api.example.com/endpoint\n");
         }
@@ -228,7 +225,7 @@ impl MarkdownGenerator {
         }
 
         for (path_pattern, path_endpoints) in path_groups {
-            endpoints_doc.push_str(&format!("### `{}`\n\n", path_pattern));
+            endpoints_doc.push_str(&format!("### `{path_pattern}`\n\n"));
 
             for endpoint in path_endpoints {
                 endpoints_doc.push_str(&self.generate_endpoint_documentation(endpoint));
@@ -249,7 +246,7 @@ impl MarkdownGenerator {
         ));
 
         let operation_desc = self.describe_operation(endpoint);
-        doc.push_str(&format!("{}\n\n", operation_desc));
+        doc.push_str(&format!("{operation_desc}\n\n"));
 
         // Statistics
         doc.push_str("**Statistics:**\n");
@@ -275,11 +272,10 @@ impl MarkdownGenerator {
 
             for param in path_params {
                 doc.push_str(&format!(
-                    "| `{}` | string | The {} identifier |\n",
-                    param, param
+                    "| `{param}` | string | The {param} identifier |\n"
                 ));
             }
-            doc.push_str("\n");
+            doc.push('\n');
         }
 
         // Query parameters for GET requests
@@ -289,7 +285,7 @@ impl MarkdownGenerator {
             doc.push_str("|-----------|------|----------|-------------|\n");
             doc.push_str("| `page` | integer | No | Page number for pagination (default: 1) |\n");
             doc.push_str("| `limit` | integer | No | Number of items per page (default: 20) |\n");
-            doc.push_str("\n");
+            doc.push('\n');
         }
 
         // Request body for POST/PUT/PATCH
@@ -370,7 +366,7 @@ impl MarkdownGenerator {
             curl.push_str("  }' \\\n");
         }
 
-        curl.push_str(&format!("  {}{}\n", base_url, path));
+        curl.push_str(&format!("  {base_url}{path}\n"));
 
         curl
     }
@@ -382,7 +378,7 @@ impl MarkdownGenerator {
         schemas_doc.push_str("The following data models are used by this API:\n\n");
 
         for (schema_name, schema) in schemas {
-            schemas_doc.push_str(&format!("### {}\n\n", schema_name));
+            schemas_doc.push_str(&format!("### {schema_name}\n\n"));
 
             if let Some(description) = schema.get("description") {
                 schemas_doc.push_str(&format!("{}\n\n", description.as_str().unwrap_or("")));
@@ -420,7 +416,7 @@ impl MarkdownGenerator {
 
         for status_code in status_codes {
             let description = self.get_status_description(status_code);
-            error_doc.push_str(&format!("| {} | {} |\n", status_code, description));
+            error_doc.push_str(&format!("| {status_code} | {description} |\n"));
         }
 
         error_doc.push_str("\n### Error Response Format\n\n");
@@ -451,7 +447,7 @@ impl MarkdownGenerator {
             409 => "Conflict - Resource conflict".to_string(),
             422 => "Unprocessable Entity - Validation error".to_string(),
             500 => "Internal Server Error - Server error".to_string(),
-            _ => format!("HTTP {}", status_code),
+            _ => format!("HTTP {status_code}"),
         }
     }
 

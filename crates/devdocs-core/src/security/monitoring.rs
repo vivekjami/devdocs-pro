@@ -371,7 +371,7 @@ pub struct SecurityMetrics {
     security_events_total: Counter,
     threats_detected_total: Counter,
     anomalies_detected_total: Counter,
-    alerts_sent_total: Counter,
+    _alerts_sent_total: Counter, // Reserved for future alerting implementation
 
     // Gauges
     active_threats: Gauge,
@@ -379,14 +379,14 @@ pub struct SecurityMetrics {
 
     // Histograms
     event_processing_duration: Histogram,
-    threat_detection_duration: Histogram,
+    _threat_detection_duration: Histogram, // Reserved for future threat detection metrics
 }
 
 /// Anomaly detection engine
 pub struct AnomalyDetector {
-    config: AnomalyDetectionConfig,
-    baseline_data: Arc<RwLock<HashMap<String, BaselineMetrics>>>,
-    detection_models: Vec<Box<dyn AnomalyDetectionModel + Send + Sync>>,
+    _config: AnomalyDetectionConfig, // Reserved for future implementation
+    _baseline_data: Arc<RwLock<HashMap<String, BaselineMetrics>>>, // Reserved for future implementation
+    _detection_models: Vec<Box<dyn AnomalyDetectionModel + Send + Sync>>, // Reserved for future implementation
 }
 
 /// Baseline metrics for anomaly detection
@@ -421,9 +421,9 @@ pub struct AnomalyScore {
 
 /// Threat detection engine
 pub struct ThreatDetector {
-    config: ThreatDetectionConfig,
-    threat_intelligence: Arc<RwLock<HashMap<String, ThreatIntelligenceData>>>,
-    detection_rules: Vec<ThreatDetectionRule>,
+    _config: ThreatDetectionConfig, // Reserved for future implementation
+    _threat_intelligence: Arc<RwLock<HashMap<String, ThreatIntelligenceData>>>, // Reserved for future implementation
+    _detection_rules: Vec<ThreatDetectionRule>, // Reserved for future implementation
 }
 
 /// Threat intelligence data
@@ -452,8 +452,8 @@ pub struct EmailAlertChannel {
 
 /// Alerting system
 pub struct AlertingSystem {
-    config: AlertingConfig,
-    channels: HashMap<String, EmailAlertChannel>,
+    _config: AlertingConfig, // Reserved for future implementation
+    _channels: HashMap<String, EmailAlertChannel>, // Reserved for future implementation
     alert_history: Arc<RwLock<Vec<AlertRecord>>>,
 }
 
@@ -781,11 +781,11 @@ impl SecurityMetrics {
             security_events_total,
             threats_detected_total,
             anomalies_detected_total,
-            alerts_sent_total,
+            _alerts_sent_total: alerts_sent_total,
             active_threats,
             blocked_ips,
             event_processing_duration,
-            threat_detection_duration,
+            _threat_detection_duration: threat_detection_duration,
         })
     }
 
@@ -852,9 +852,9 @@ pub struct DetectedThreat {
 impl AnomalyDetector {
     pub fn new(_config: &AnomalyDetectionConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
-            config: _config.clone(),
-            baseline_data: Arc::new(RwLock::new(HashMap::new())),
-            detection_models: Vec::new(),
+            _config: _config.clone(),
+            _baseline_data: Arc::new(RwLock::new(HashMap::new())),
+            _detection_models: Vec::new(),
         })
     }
 
@@ -870,9 +870,9 @@ impl AnomalyDetector {
 impl ThreatDetector {
     pub fn new(config: &ThreatDetectionConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
-            config: config.clone(),
-            threat_intelligence: Arc::new(RwLock::new(HashMap::new())),
-            detection_rules: config.detection_rules.clone(),
+            _config: config.clone(),
+            _threat_intelligence: Arc::new(RwLock::new(HashMap::new())),
+            _detection_rules: config.detection_rules.clone(),
         })
     }
 
@@ -888,8 +888,8 @@ impl ThreatDetector {
 impl AlertingSystem {
     pub fn new(_config: &AlertingConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
-            config: _config.clone(),
-            channels: HashMap::<String, EmailAlertChannel>::new(),
+            _config: _config.clone(),
+            _channels: HashMap::<String, EmailAlertChannel>::new(),
             alert_history: Arc::new(RwLock::new(Vec::new())),
         })
     }

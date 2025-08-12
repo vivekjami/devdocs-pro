@@ -18,7 +18,7 @@ use devdocs_middleware::TrafficProcessor;
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::time::{sleep, Duration};
-use tracing_subscriber;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

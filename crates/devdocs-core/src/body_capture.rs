@@ -23,7 +23,7 @@ async fn collect_body(body: Incoming) -> Result<Bytes> {
     body.collect()
         .await
         .map(|collected| collected.to_bytes())
-        .map_err(|e| DevDocsError::InvalidRequest(format!("Failed to collect body: {}", e)))
+        .map_err(|e| DevDocsError::InvalidRequest(format!("Failed to collect body: {e}")))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -222,7 +222,7 @@ impl BodyCapture {
         // Ensure temp directory exists
         fs::create_dir_all(&self.config.temp_dir)
             .await
-            .map_err(|e| DevDocsError::Io(e))?;
+            .map_err(DevDocsError::Io)?;
 
         // Generate unique filename
         let filename = format!(
@@ -236,13 +236,11 @@ impl BodyCapture {
         // Write data to file
         let mut file = fs::File::create(&file_path)
             .await
-            .map_err(|e| DevDocsError::Io(e))?;
+            .map_err(DevDocsError::Io)?;
 
-        file.write_all(data)
-            .await
-            .map_err(|e| DevDocsError::Io(e))?;
+        file.write_all(data).await.map_err(DevDocsError::Io)?;
 
-        file.sync_all().await.map_err(|e| DevDocsError::Io(e))?;
+        file.sync_all().await.map_err(DevDocsError::Io)?;
 
         tracing::debug!(
             "Stored large body ({} bytes) to file: {:?}",
@@ -339,7 +337,7 @@ pub async fn decompress_body(data: Bytes, compression: &CompressionType) -> Resu
             let mut decoder = flate2::read::GzDecoder::new(data.as_ref());
             let mut decompressed = Vec::new();
             decoder.read_to_end(&mut decompressed).map_err(|e| {
-                DevDocsError::InvalidRequest(format!("Gzip decompression failed: {}", e))
+                DevDocsError::InvalidRequest(format!("Gzip decompression failed: {e}"))
             })?;
             Ok(Bytes::from(decompressed))
         }
@@ -347,7 +345,7 @@ pub async fn decompress_body(data: Bytes, compression: &CompressionType) -> Resu
             let mut decoder = flate2::read::DeflateDecoder::new(data.as_ref());
             let mut decompressed = Vec::new();
             decoder.read_to_end(&mut decompressed).map_err(|e| {
-                DevDocsError::InvalidRequest(format!("Deflate decompression failed: {}", e))
+                DevDocsError::InvalidRequest(format!("Deflate decompression failed: {e}"))
             })?;
             Ok(Bytes::from(decompressed))
         }
@@ -366,7 +364,7 @@ impl CapturedBody {
         match &self.storage {
             BodyStorage::Memory(data) => Ok(Bytes::from(data.clone())),
             BodyStorage::File(path) => {
-                let data = fs::read(path).await.map_err(|e| DevDocsError::Io(e))?;
+                let data = fs::read(path).await.map_err(DevDocsError::Io)?;
                 Ok(Bytes::from(data))
             }
             BodyStorage::Truncated { captured, .. } => Ok(Bytes::from(captured.clone())),
@@ -377,7 +375,7 @@ impl CapturedBody {
     pub async fn get_text(&self) -> Result<String> {
         let data = self.get_data().await?;
         String::from_utf8(data.to_vec())
-            .map_err(|e| DevDocsError::InvalidRequest(format!("Body is not valid UTF-8: {}", e)))
+            .map_err(|e| DevDocsError::InvalidRequest(format!("Body is not valid UTF-8: {e}")))
     }
 
     /// Check if body was truncated due to size limits

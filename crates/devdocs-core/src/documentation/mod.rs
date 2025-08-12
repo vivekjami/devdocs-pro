@@ -11,10 +11,10 @@ pub mod realtime_updater;
 
 use crate::analysis::AnalysisResult;
 use crate::errors::DevDocsError;
-use crate::models::ApiEndpoint;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+
 use uuid::Uuid;
 
 /// Configuration for documentation generation

@@ -399,19 +399,19 @@ pub struct DataProtectionProcessor {
 
 /// Field-level encryption processor
 pub struct FieldLevelEncryptor {
-    config: DataEncryptionConfig,
-    encryption_keys: HashMap<String, Vec<u8>>,
+    _config: DataEncryptionConfig, // Reserved for future implementation
+    _encryption_keys: HashMap<String, Vec<u8>>, // Reserved for future implementation
 }
 
 /// Data anonymization processor
 pub struct DataAnonymizer {
-    config: AnonymizationConfig,
+    _config: AnonymizationConfig, // Reserved for future implementation
 }
 
 /// Data pseudonymization processor
 pub struct DataPseudonymizer {
-    config: PseudonymizationConfig,
-    pseudonym_mapping: HashMap<String, String>,
+    _config: PseudonymizationConfig, // Reserved for future implementation
+    _pseudonym_mapping: HashMap<String, String>, // Reserved for future implementation
 }
 
 /// Data masking processor
@@ -421,7 +421,7 @@ pub struct DataMasker {
 
 /// Data classification processor
 pub struct DataClassifier {
-    classification_rules: Vec<ClassificationRule>,
+    _classification_rules: Vec<ClassificationRule>, // Reserved for future implementation
 }
 
 /// Protected data result
@@ -651,7 +651,7 @@ impl DataProtectionProcessor {
     fn get_retention_policy(&self, classification: &DataClassification) -> Option<String> {
         // Find applicable retention policy
         for policy in &self.config.lifecycle.retention_policies {
-            let classification_str = format!("{:?}", classification).to_lowercase();
+            let classification_str = format!("{classification:?}").to_lowercase();
             if policy.data_types.contains(&classification_str) {
                 return Some(policy.policy_id.clone());
             }
@@ -671,7 +671,7 @@ impl DataProtectionProcessor {
                 let scale = sensitivity / epsilon;
                 let mut bytes = [0u8; 8];
                 self.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate random bytes: {e}"))
                 })?;
 
                 let uniform = f64::from_le_bytes(bytes) / f64::MAX;
@@ -688,7 +688,7 @@ impl DataProtectionProcessor {
                 let scale = sensitivity / epsilon;
                 let mut bytes = [0u8; 8];
                 self.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate random bytes: {e}"))
                 })?;
 
                 let uniform = f64::from_le_bytes(bytes) / f64::MAX;
@@ -702,7 +702,7 @@ impl DataProtectionProcessor {
                 let scale = sensitivity / epsilon;
                 let mut bytes = [0u8; 8];
                 self.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate random bytes: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate random bytes: {e}"))
                 })?;
 
                 let uniform = f64::from_le_bytes(bytes) / f64::MAX;
@@ -718,8 +718,8 @@ impl DataProtectionProcessor {
 impl FieldLevelEncryptor {
     pub fn new(_config: &DataEncryptionConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
-            config: _config.clone(),
-            encryption_keys: HashMap::new(),
+            _config: _config.clone(),
+            _encryption_keys: HashMap::new(),
         })
     }
 
@@ -732,7 +732,7 @@ impl FieldLevelEncryptor {
 impl DataAnonymizer {
     pub fn new(config: &AnonymizationConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
-            config: config.clone(),
+            _config: config.clone(),
         })
     }
 
@@ -745,8 +745,8 @@ impl DataAnonymizer {
 impl DataPseudonymizer {
     pub fn new(config: &PseudonymizationConfig) -> Result<Self, DevDocsError> {
         Ok(Self {
-            config: config.clone(),
-            pseudonym_mapping: HashMap::new(),
+            _config: config.clone(),
+            _pseudonym_mapping: HashMap::new(),
         })
     }
 
@@ -781,7 +781,7 @@ impl DataMasker {
 impl DataClassifier {
     pub fn new(rules: &[ClassificationRule]) -> Result<Self, DevDocsError> {
         Ok(Self {
-            classification_rules: rules.to_vec(),
+            _classification_rules: rules.to_vec(),
         })
     }
 

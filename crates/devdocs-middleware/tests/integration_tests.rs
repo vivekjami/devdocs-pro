@@ -21,7 +21,7 @@ async fn test_middleware_integration() {
         ..Default::default()
     };
 
-    let (layer, mut middleware) = DevDocsMiddleware::new(config);
+    let (layer, mut middleware) = DevDocsMiddleware::new(config).unwrap();
 
     // Create service with middleware
     let service = ServiceBuilder::new()
@@ -37,7 +37,7 @@ async fn test_middleware_integration() {
 
     // Process request in background
     tokio::spawn(async move {
-        middleware.start_processing().await;
+        let _ = middleware.start_processing().await;
     });
 
     let response = service.oneshot(request).await.unwrap();
@@ -53,7 +53,7 @@ async fn test_path_exclusion() {
         ..Default::default()
     };
 
-    let (layer, _middleware) = DevDocsMiddleware::new(config);
+    let (layer, _middleware) = DevDocsMiddleware::new(config).unwrap();
 
     // Create service with middleware
     let service = ServiceBuilder::new()

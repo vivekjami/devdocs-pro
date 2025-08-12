@@ -585,12 +585,12 @@ mod tests {
             "/test".to_string(),
             "corr-123".to_string(),
         );
-        let debug_str = format!("{:?}", request);
+        let debug_str = format!("{request:?}");
         assert!(debug_str.contains("HttpRequest"));
         assert!(debug_str.contains("GET"));
 
         let analysis = AIAnalysisResult::new("Test".to_string(), 0.8);
-        let debug_str = format!("{:?}", analysis);
+        let debug_str = format!("{analysis:?}");
         assert!(debug_str.contains("AIAnalysisResult"));
         assert!(debug_str.contains("Test"));
     }

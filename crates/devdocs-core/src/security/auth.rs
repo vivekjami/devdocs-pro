@@ -197,7 +197,7 @@ pub struct Authenticator {
 impl Authenticator {
     pub fn new(config: &AuthConfig) -> Result<Self, DevDocsError> {
         let jwt_key = Hmac::new_from_slice(config.jwt_secret.as_bytes())
-            .map_err(|e| DevDocsError::Configuration(format!("Invalid JWT secret: {}", e)))?;
+            .map_err(|e| DevDocsError::Configuration(format!("Invalid JWT secret: {e}")))?;
 
         Ok(Self {
             config: config.clone(),
@@ -241,7 +241,7 @@ impl Authenticator {
     pub async fn validate_jwt_token(&self, token: &str) -> Result<AuthResult, DevDocsError> {
         let token: Token<Header, JwtClaims, _> = token
             .verify_with_key(&self.jwt_key)
-            .map_err(|e| DevDocsError::Unauthorized(format!("JWT validation failed: {}", e)))?;
+            .map_err(|e| DevDocsError::Unauthorized(format!("JWT validation failed: {e}")))?;
 
         let claims = token.claims();
 
@@ -348,7 +348,7 @@ impl Authenticator {
         let header = Header::default();
         let token = Token::new(header, claims)
             .sign_with_key(&self.jwt_key)
-            .map_err(|e| DevDocsError::Authentication(format!("JWT signing failed: {}", e)))?;
+            .map_err(|e| DevDocsError::Authentication(format!("JWT signing failed: {e}")))?;
 
         Ok(token.as_str().to_string())
     }

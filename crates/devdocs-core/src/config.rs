@@ -143,20 +143,20 @@ mod tests {
         assert_eq!(config.sampling_rate, 0.1);
         assert_eq!(config.max_body_size, Some(10 * 1024 * 1024));
         assert!(!config.excluded_paths.is_empty());
-        assert_eq!(config.enable_pii_filtering, true);
+        assert!(config.enable_pii_filtering);
         assert_eq!(config.server_url, "https://api.devdocs.pro");
     }
 
     #[test]
     fn test_body_capture_config_default() {
         let config = BodyCaptureConfig::default();
-        assert_eq!(config.enabled, true);
+        assert!(config.enabled);
         assert_eq!(config.max_size, 10 * 1024 * 1024);
         assert_eq!(config.max_memory_size, 1024 * 1024);
-        assert_eq!(config.enable_compression_detection, true);
-        assert_eq!(config.enable_decompression, true);
-        assert_eq!(config.capture_request_bodies, true);
-        assert_eq!(config.capture_response_bodies, true);
+        assert!(config.enable_compression_detection);
+        assert!(config.enable_decompression);
+        assert!(config.capture_request_bodies);
+        assert!(config.capture_response_bodies);
     }
 
     #[test]
@@ -183,7 +183,7 @@ mod tests {
         let config = Config::from_env().unwrap();
         assert_eq!(config.sampling_rate, 0.5);
         assert_eq!(config.max_body_size, Some(5242880));
-        assert_eq!(config.body_capture.enabled, false);
+        assert!(!config.body_capture.enabled);
 
         // Clean up
         env::remove_var("DEVDOCS_SAMPLING_RATE");
@@ -255,22 +255,29 @@ mod tests {
 
     #[test]
     fn test_config_validation_invalid_sampling_rate() {
-        let mut config = Config::default();
-        config.sampling_rate = -0.1;
+        let config = Config {
+            sampling_rate: -0.1,
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
         assert_eq!(
             config.validate().unwrap_err(),
             "Sampling rate must be between 0.0 and 1.0"
         );
 
-        config.sampling_rate = 1.5;
-        assert!(config.validate().is_err());
+        let config2 = Config {
+            sampling_rate: 1.5,
+            ..Default::default()
+        };
+        assert!(config2.validate().is_err());
     }
 
     #[test]
     fn test_config_validation_zero_body_size() {
-        let mut config = Config::default();
-        config.max_body_size = Some(0);
+        let config = Config {
+            max_body_size: Some(0),
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
         assert_eq!(
             config.validate().unwrap_err(),
@@ -280,8 +287,10 @@ mod tests {
 
     #[test]
     fn test_config_validation_empty_server_url() {
-        let mut config = Config::default();
-        config.server_url = "".to_string();
+        let config = Config {
+            server_url: "".to_string(),
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
         assert_eq!(config.validate().unwrap_err(), "Server URL cannot be empty");
     }
@@ -321,7 +330,7 @@ mod tests {
     #[test]
     fn test_config_debug() {
         let config = Config::default();
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("Config"));
         assert!(debug_str.contains("sampling_rate"));
     }
@@ -351,12 +360,12 @@ mod tests {
     #[test]
     fn test_config_pii_filtering() {
         let config = Config::default();
-        assert_eq!(config.enable_pii_filtering, true);
+        assert!(config.enable_pii_filtering);
 
         let config_no_pii = Config {
             enable_pii_filtering: false,
             ..Default::default()
         };
-        assert_eq!(config_no_pii.enable_pii_filtering, false);
+        assert!(!config_no_pii.enable_pii_filtering);
     }
 }
