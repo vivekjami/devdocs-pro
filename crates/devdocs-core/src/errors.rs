@@ -166,7 +166,7 @@ mod tests {
             limit: 500,
         };
         assert_eq!(error.to_string(), "Body too large: 1000 > 500");
-        assert_eq!(error.error_code(), 1005);
+        assert_eq!(error.error_code(), 1006);
         assert!(!error.is_retryable());
     }
 
@@ -174,7 +174,7 @@ mod tests {
     fn test_invalid_request_error() {
         let error = DevDocsError::InvalidRequest("Missing header".to_string());
         assert_eq!(error.to_string(), "Invalid request: Missing header");
-        assert_eq!(error.error_code(), 1006);
+        assert_eq!(error.error_code(), 1007);
         assert!(!error.is_retryable());
     }
 
@@ -182,7 +182,7 @@ mod tests {
     fn test_ai_processing_error() {
         let error = DevDocsError::AiProcessing("Model failed".to_string());
         assert_eq!(error.to_string(), "AI processing error: Model failed");
-        assert_eq!(error.error_code(), 1007);
+        assert_eq!(error.error_code(), 1008);
         assert!(!error.is_retryable());
     }
 
@@ -190,7 +190,7 @@ mod tests {
     fn test_rate_limit_error() {
         let error = DevDocsError::RateLimit("Too many requests".to_string());
         assert_eq!(error.to_string(), "Rate limit exceeded: Too many requests");
-        assert_eq!(error.error_code(), 1008);
+        assert_eq!(error.error_code(), 1009);
         assert!(error.is_retryable());
     }
 
@@ -198,7 +198,7 @@ mod tests {
     fn test_authentication_error() {
         let error = DevDocsError::Authentication("Invalid API key".to_string());
         assert_eq!(error.to_string(), "Authentication failed: Invalid API key");
-        assert_eq!(error.error_code(), 1009);
+        assert_eq!(error.error_code(), 1010);
         assert!(!error.is_retryable());
     }
 
@@ -206,7 +206,7 @@ mod tests {
     fn test_timeout_error() {
         let error = DevDocsError::Timeout("Request timed out".to_string());
         assert_eq!(error.to_string(), "Timeout error: Request timed out");
-        assert_eq!(error.error_code(), 1010);
+        assert_eq!(error.error_code(), 1013);
         assert!(error.is_retryable());
     }
 
@@ -217,7 +217,7 @@ mod tests {
             error.to_string(),
             "Schema inference error: Failed to infer schema"
         );
-        assert_eq!(error.error_code(), 1011);
+        assert_eq!(error.error_code(), 1014);
         assert!(!error.is_retryable());
     }
 
@@ -225,7 +225,7 @@ mod tests {
     fn test_traffic_analysis_error() {
         let error = DevDocsError::TrafficAnalysis("Analysis failed".to_string());
         assert_eq!(error.to_string(), "Traffic analysis error: Analysis failed");
-        assert_eq!(error.error_code(), 1012);
+        assert_eq!(error.error_code(), 1015);
         assert!(!error.is_retryable());
     }
 

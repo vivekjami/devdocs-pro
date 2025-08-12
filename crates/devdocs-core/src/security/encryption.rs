@@ -404,7 +404,7 @@ mod tests {
         let original_key_id = encryptor.current_key_id.clone();
 
         // Force key rotation
-        std::thread::sleep(std::time::Duration::from_millis(1));
+        std::thread::sleep(std::time::Duration::from_secs(1));
         encryptor.rotate_key().unwrap();
 
         assert_ne!(encryptor.current_key_id, original_key_id);

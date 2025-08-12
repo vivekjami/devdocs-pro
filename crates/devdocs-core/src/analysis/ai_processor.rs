@@ -388,7 +388,7 @@ mod tests {
 
         let config = GeminiConfig::default();
         assert_eq!(config.api_key, "test_key");
-        assert_eq!(config.model, "gemini-pro");
+        assert_eq!(config.model, "gemini-2.5-flash");
         assert_eq!(config.temperature, 0.3);
         assert_eq!(config.max_tokens, 4096);
 
@@ -398,8 +398,11 @@ mod tests {
 
     #[test]
     fn test_ai_processor_creation_without_api_key() {
-        // Ensure no API key is set
-        std::env::remove_var("GEMINI_API_KEY");
+        // Save the current API key if it exists
+        let original_key = std::env::var("GEMINI_API_KEY").ok();
+
+        // Set empty API key
+        std::env::set_var("GEMINI_API_KEY", "");
 
         let config = AnalysisConfig::default();
         let processor = AiProcessor::new(&config);
@@ -409,6 +412,13 @@ mod tests {
             assert!(msg.contains("GEMINI_API_KEY"));
         } else {
             panic!("Expected Configuration error");
+        }
+
+        // Restore the original API key if it existed
+        if let Some(key) = original_key {
+            std::env::set_var("GEMINI_API_KEY", key);
+        } else {
+            std::env::remove_var("GEMINI_API_KEY");
         }
     }
 

@@ -938,6 +938,8 @@ mod tests {
     async fn test_audit_query() {
         let temp_dir = TempDir::new().unwrap();
         let mut config = AuditConfig::default();
+        config.enabled = true;
+        config.log_level = AuditLogLevel::Verbose; // Log all events
         config.storage.connection_string = temp_dir.path().to_string_lossy().to_string();
 
         let mut logger = AuditLogger::new(&config).unwrap();
@@ -963,6 +965,9 @@ mod tests {
         };
 
         logger.log_event(event).await.unwrap();
+
+        // Small delay to ensure event is stored
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
         // Query events
         let query = AuditQuery {

@@ -28,10 +28,17 @@ impl HtmlGenerator {
     ) -> Result<String, DevDocsError> {
         let mut html = String::new();
 
+        // Extract title from OpenAPI spec if available
+        let title = openapi_spec
+            .get("info")
+            .and_then(|info| info.get("title"))
+            .and_then(|title| title.as_str())
+            .unwrap_or(&self.config.title);
+
         // HTML document structure
-        html.push_str(&self.generate_html_head());
+        html.push_str(&self.generate_html_head_with_title(title));
         html.push_str("<body>");
-        html.push_str(&self.generate_header());
+        html.push_str(&self.generate_header_with_title(title));
         html.push_str(&self.generate_navigation(openapi_spec));
         html.push_str("<main class=\"main-content\">");
 
@@ -50,8 +57,8 @@ impl HtmlGenerator {
         Ok(html)
     }
 
-    /// Generate HTML head section
-    fn generate_html_head(&self) -> String {
+    /// Generate HTML head section with custom title
+    fn generate_html_head_with_title(&self, title: &str) -> String {
         let mut head = String::new();
 
         head.push_str("<!DOCTYPE html>");
@@ -59,11 +66,16 @@ impl HtmlGenerator {
         head.push_str("<head>");
         head.push_str("<meta charset=\"UTF-8\">");
         head.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-        head.push_str(&format!("<title>{}</title>", self.config.title));
+        head.push_str(&format!("<title>{title}</title>"));
         head.push_str(&self.generate_css());
         head.push_str("</head>");
 
         head
+    }
+
+    /// Generate HTML head section (legacy method)
+    fn generate_html_head(&self) -> String {
+        self.generate_html_head_with_title(&self.config.title)
     }
 
     /// Generate CSS styles
@@ -82,8 +94,8 @@ impl HtmlGenerator {
         css
     }
 
-    /// Generate header section
-    fn generate_header(&self) -> String {
+    /// Generate header section with custom title
+    fn generate_header_with_title(&self, title: &str) -> String {
         let mut header = String::new();
 
         header.push_str("<header class=\"header\">");
@@ -95,7 +107,7 @@ impl HtmlGenerator {
             ));
         }
 
-        header.push_str(&format!("<h1>{}</h1>", self.config.title));
+        header.push_str(&format!("<h1>{title}</h1>"));
 
         if let Some(description) = &self.config.description {
             header.push_str(&format!("<p class=\"description\">{description}</p>"));
@@ -109,6 +121,11 @@ impl HtmlGenerator {
         header.push_str("</header>");
 
         header
+    }
+
+    /// Generate header section (legacy method)
+    fn generate_header(&self) -> String {
+        self.generate_header_with_title(&self.config.title)
     }
 
     /// Generate navigation menu
@@ -627,6 +644,9 @@ mod tests {
         });
 
         let html = generator.generate_html(&openapi_spec, None).await.unwrap();
+
+        // Debug: print the HTML to see what's actually generated
+        println!("Generated HTML: {}", html);
 
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("Test API"));
