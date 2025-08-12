@@ -19,7 +19,6 @@ use serde_json::json;
 use std::collections::HashMap;
 use tokio::time::{sleep, Duration};
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
