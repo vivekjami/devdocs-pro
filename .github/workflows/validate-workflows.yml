@@ -17,12 +17,153 @@ jobs:
     
     - name: Validate GitHub Action workflow files
       run: |
-        echo "Validating GitHub Action workflow files..."
+        echo "🔍 Validating GitHub Action workflow files..."
         
         # Install actionlint
         bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
         
-        # Run actionlint
+        # Run actionlint on all workflow files
+        echo "Running actionlint..."
         ./actionlint -color
         
-        echo "All workflow files validated successfully!"
+        echo "✅ Actionlint validation passed!"
+        
+    - name: Check workflow file structure
+      run: |
+        echo "🔍 Checking workflow file structure..."
+        
+        # Check that all expected workflow files exist
+        required_workflows=(
+          ".github/workflows/ci.yml"
+          ".github/workflows/security-ci.yml"
+          ".github/workflows/validate-workflows.yml"
+        )
+        
+        for workflow in "${required_workflows[@]}"; do
+          if [ -f "$workflow" ]; then
+            echo "✅ $workflow exists"
+          else
+            echo "❌ $workflow missing"
+            exit 1
+          fi
+        done
+        
+    - name: Validate CI workflow content
+      run: |
+        echo "🔍 Validating CI workflow content..."
+        
+        # Check that CI workflow has required jobs
+        required_jobs=("test" "security-validation" "ai-integration-test" "workflow-summary")
+        
+        for job in "${required_jobs[@]}"; do
+          if grep -q "$job:" .github/workflows/ci.yml; then
+            echo "✅ CI job '$job' found"
+          else
+            echo "❌ CI job '$job' missing"
+            exit 1
+          fi
+        done
+        
+    - name: Validate Security CI workflow
+      run: |
+        echo "🔍 Validating Security CI workflow..."
+        
+        # Check that Security CI has required jobs
+        security_jobs=("security-audit" "security-tests" "vulnerability-scan" "compliance-check")
+        
+        for job in "${security_jobs[@]}"; do
+          if grep -q "$job:" .github/workflows/security-ci.yml; then
+            echo "✅ Security job '$job' found"
+          else
+            echo "❌ Security job '$job' missing"
+            exit 1
+          fi
+        done
+        
+    - name: Check environment variables
+      run: |
+        echo "🔍 Checking required environment variables in workflows..."
+        
+        # Check that required env vars are defined in CI
+        required_env_vars=("JWT_SECRET" "DEVDOCS_MASTER_KEY" "GEMINI_API_KEY")
+        
+        for var in "${required_env_vars[@]}"; do
+          if grep -q "$var" .github/workflows/ci.yml; then
+            echo "✅ Environment variable '$var' found in CI"
+          else
+            echo "❌ Environment variable '$var' missing from CI"
+            exit 1
+          fi
+        done
+        
+    - name: Validate workflow triggers
+      run: |
+        echo "🔍 Validating workflow triggers..."
+        
+        # Check that workflows have proper triggers
+        if grep -q "on:" .github/workflows/ci.yml && \
+           grep -q "push:" .github/workflows/ci.yml && \
+           grep -q "pull_request:" .github/workflows/ci.yml; then
+          echo "✅ CI workflow has proper triggers"
+        else
+          echo "❌ CI workflow missing required triggers"
+          exit 1
+        fi
+        
+        if grep -q "schedule:" .github/workflows/security-ci.yml; then
+          echo "✅ Security CI has scheduled trigger"
+        else
+          echo "❌ Security CI missing scheduled trigger"
+          exit 1
+        fi
+        
+    - name: Test workflow syntax
+      run: |
+        echo "🔍 Testing workflow YAML syntax..."
+        
+        # Install yq for YAML validation
+        sudo snap install yq
+        
+        # Validate YAML syntax of all workflow files
+        for workflow in .github/workflows/*.yml; do
+          if yq eval '.' "$workflow" > /dev/null; then
+            echo "✅ $workflow has valid YAML syntax"
+          else
+            echo "❌ $workflow has invalid YAML syntax"
+            exit 1
+          fi
+        done
+        
+    - name: Generate validation report
+      run: |
+        echo "📊 Generating workflow validation report..."
+        
+        cat > workflow_validation_report.md << 'EOF'
+        # Workflow Validation Report
+        
+        **Date:** $(date)
+        **Status:** ✅ PASSED
+        
+        ## Validated Workflows
+        - ✅ ci.yml - Main CI/CD pipeline
+        - ✅ security-ci.yml - Security-focused testing
+        - ✅ validate-workflows.yml - Workflow validation
+        
+        ## Validation Checks
+        - ✅ ActionLint validation passed
+        - ✅ All required jobs present
+        - ✅ Environment variables configured
+        - ✅ Proper workflow triggers
+        - ✅ Valid YAML syntax
+        
+        ## Summary
+        All GitHub Actions workflows are properly configured and ready for use.
+        EOF
+        
+        echo "✅ Validation report generated"
+        
+    - name: Upload validation report
+      uses: actions/upload-artifact@v4
+      with:
+        name: workflow-validation-report
+        path: workflow_validation_report.md
