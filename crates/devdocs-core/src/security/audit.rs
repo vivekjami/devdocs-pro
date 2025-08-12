@@ -937,10 +937,18 @@ mod tests {
     #[tokio::test]
     async fn test_audit_query() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = AuditConfig::default();
-        config.enabled = true;
-        config.log_level = AuditLogLevel::Verbose; // Log all events
-        config.storage.connection_string = temp_dir.path().to_string_lossy().to_string();
+        let config = AuditConfig {
+            enabled: true,
+            log_level: AuditLogLevel::Verbose, // Log all events
+            storage: AuditStorageConfig {
+                backend: AuditStorageBackend::FileSystem,
+                connection_string: temp_dir.path().to_string_lossy().to_string(),
+                encrypt_at_rest: false,
+                enable_compression: false,
+                batch_size: 100,
+            },
+            ..Default::default()
+        };
 
         let mut logger = AuditLogger::new(&config).unwrap();
 

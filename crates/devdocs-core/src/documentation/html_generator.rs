@@ -74,6 +74,7 @@ impl HtmlGenerator {
     }
 
     /// Generate HTML head section (legacy method)
+    #[allow(dead_code)]
     fn generate_html_head(&self) -> String {
         self.generate_html_head_with_title(&self.config.title)
     }
@@ -124,6 +125,7 @@ impl HtmlGenerator {
     }
 
     /// Generate header section (legacy method)
+    #[allow(dead_code)]
     fn generate_header(&self) -> String {
         self.generate_header_with_title(&self.config.title)
     }
@@ -646,7 +648,7 @@ mod tests {
         let html = generator.generate_html(&openapi_spec, None).await.unwrap();
 
         // Debug: print the HTML to see what's actually generated
-        println!("Generated HTML: {}", html);
+        println!("Generated HTML: {html}");
 
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("Test API"));
