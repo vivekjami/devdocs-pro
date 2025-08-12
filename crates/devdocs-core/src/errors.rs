@@ -76,7 +76,10 @@ impl DevDocsError {
     pub fn is_retryable(&self) -> bool {
         matches!(
             self,
-            DevDocsError::Network(_) | DevDocsError::NetworkError(_) | DevDocsError::Timeout(_) | DevDocsError::RateLimit(_)
+            DevDocsError::Network(_)
+                | DevDocsError::NetworkError(_)
+                | DevDocsError::Timeout(_)
+                | DevDocsError::RateLimit(_)
         )
     }
 

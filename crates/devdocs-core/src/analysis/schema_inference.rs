@@ -120,8 +120,9 @@ impl SchemaInferrer {
     /// Extract endpoint pattern from path (e.g., /users/123 -> /users/{id})
     fn extract_endpoint_pattern(&self, path: &str) -> String {
         let uuid_pattern = regex::Regex::new(
-            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-        ).unwrap();
+            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        )
+        .unwrap();
         let number_pattern = regex::Regex::new(r"/\d+").unwrap();
 
         let mut pattern = uuid_pattern.replace_all(path, "/{id}").to_string();
@@ -204,24 +205,42 @@ impl SchemaInferrer {
     ) {
         match value {
             Value::Null => {
-                analysis.entry(path.to_string()).or_default().push(FieldType::String);
+                analysis
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(FieldType::String);
             }
             Value::Bool(_) => {
-                analysis.entry(path.to_string()).or_default().push(FieldType::Boolean);
+                analysis
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(FieldType::Boolean);
             }
             Value::Number(n) => {
                 if n.is_i64() {
-                    analysis.entry(path.to_string()).or_default().push(FieldType::Integer);
+                    analysis
+                        .entry(path.to_string())
+                        .or_default()
+                        .push(FieldType::Integer);
                 } else {
-                    analysis.entry(path.to_string()).or_default().push(FieldType::Number);
+                    analysis
+                        .entry(path.to_string())
+                        .or_default()
+                        .push(FieldType::Number);
                 }
             }
             Value::String(s) => {
                 // Check if string looks like an enum value
                 if self.is_likely_enum_value(s) {
-                    analysis.entry(path.to_string()).or_default().push(FieldType::Enum(vec![s.clone()]));
+                    analysis
+                        .entry(path.to_string())
+                        .or_default()
+                        .push(FieldType::Enum(vec![s.clone()]));
                 } else {
-                    analysis.entry(path.to_string()).or_default().push(FieldType::String);
+                    analysis
+                        .entry(path.to_string())
+                        .or_default()
+                        .push(FieldType::String);
                 }
             }
             Value::Array(arr) => {
@@ -229,7 +248,10 @@ impl SchemaInferrer {
                     let element_path = format!("{}[]", path);
                     self.analyze_value(&element_path, first, analysis);
                 }
-                analysis.entry(path.to_string()).or_default().push(FieldType::Array(Box::new(FieldType::String)));
+                analysis
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(FieldType::Array(Box::new(FieldType::String)));
             }
             Value::Object(obj) => {
                 for (key, val) in obj {
@@ -240,7 +262,10 @@ impl SchemaInferrer {
                     };
                     self.analyze_value(&field_path, val, analysis);
                 }
-                analysis.entry(path.to_string()).or_default().push(FieldType::Object);
+                analysis
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(FieldType::Object);
             }
         }
     }
@@ -248,10 +273,10 @@ impl SchemaInferrer {
     /// Check if a string value is likely an enum
     fn is_likely_enum_value(&self, value: &str) -> bool {
         // Simple heuristics for enum detection
-        value.len() < 50 && 
-        !value.contains(' ') && 
-        (value.chars().all(|c| c.is_ascii_uppercase() || c == '_') ||
-         value.chars().all(|c| c.is_ascii_lowercase() || c == '_'))
+        value.len() < 50
+            && !value.contains(' ')
+            && (value.chars().all(|c| c.is_ascii_uppercase() || c == '_')
+                || value.chars().all(|c| c.is_ascii_lowercase() || c == '_'))
     }
 
     /// Build JSON schema from field analysis
@@ -325,14 +350,14 @@ impl SchemaInferrer {
             }
             FieldType::Enum(values) => {
                 schema.insert("type".to_string(), Value::String("string".to_string()));
-                schema.insert("enum".to_string(), Value::Array(
-                    values.iter().map(|v| Value::String(v.clone())).collect()
-                ));
+                schema.insert(
+                    "enum".to_string(),
+                    Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()),
+                );
             }
             FieldType::Union(types) => {
-                let type_schemas: Vec<Value> = types.iter()
-                    .map(|t| self.type_to_json_schema(t))
-                    .collect();
+                let type_schemas: Vec<Value> =
+                    types.iter().map(|t| self.type_to_json_schema(t)).collect();
                 schema.insert("anyOf".to_string(), Value::Array(type_schemas));
             }
         }
@@ -350,8 +375,8 @@ impl SchemaInferrer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::body_capture::{BodyStorage, CapturedBody, CompressionType, ContentPriority};
     use crate::models::{HttpRequest, HttpResponse};
-    use crate::body_capture::{CapturedBody, BodyStorage, CompressionType, ContentPriority};
 
     #[tokio::test]
     async fn test_schema_inferrer_creation() {
@@ -364,16 +389,22 @@ mod tests {
     fn test_endpoint_pattern_extraction() {
         let config = AnalysisConfig::default();
         let inferrer = SchemaInferrer::new(&config).unwrap();
-        
-        assert_eq!(inferrer.extract_endpoint_pattern("/users/123"), "/users/{id}");
-        assert_eq!(inferrer.extract_endpoint_pattern("/api/v1/posts/456/comments"), "/api/v1/posts/{id}/comments");
+
+        assert_eq!(
+            inferrer.extract_endpoint_pattern("/users/123"),
+            "/users/{id}"
+        );
+        assert_eq!(
+            inferrer.extract_endpoint_pattern("/api/v1/posts/456/comments"),
+            "/api/v1/posts/{id}/comments"
+        );
     }
 
     #[test]
     fn test_enum_detection() {
         let config = AnalysisConfig::default();
         let inferrer = SchemaInferrer::new(&config).unwrap();
-        
+
         assert!(inferrer.is_likely_enum_value("ACTIVE"));
         assert!(inferrer.is_likely_enum_value("pending"));
         assert!(!inferrer.is_likely_enum_value("This is a long description"));
@@ -383,15 +414,15 @@ mod tests {
     async fn test_json_schema_inference() {
         let config = AnalysisConfig::default();
         let mut inferrer = SchemaInferrer::new(&config).unwrap();
-        
+
         let values = vec![
             serde_json::json!({"name": "John", "age": 30, "active": true}),
             serde_json::json!({"name": "Jane", "age": 25, "active": false}),
         ];
-        
+
         let schema = inferrer.infer_json_schema(&values).await.unwrap();
         assert!(schema.is_object());
-        
+
         let schema_obj = schema.as_object().unwrap();
         assert!(schema_obj.contains_key("properties"));
         assert!(schema_obj.contains_key("type"));
@@ -405,7 +436,7 @@ mod tests {
         // Create sample with JSON body
         let json_body = serde_json::json!({"user_id": 123, "name": "Test User"});
         let body_bytes = serde_json::to_vec(&json_body).unwrap();
-        
+
         let captured_body = CapturedBody {
             content_type: Some("application/json".to_string()),
             compression: CompressionType::None,
@@ -418,11 +449,12 @@ mod tests {
             "POST".to_string(),
             "/users".to_string(),
             "corr-123".to_string(),
-        ).with_body(captured_body);
+        )
+        .with_body(captured_body);
 
         let response_body = serde_json::json!({"id": 123, "status": "created"});
         let response_bytes = serde_json::to_vec(&response_body).unwrap();
-        
+
         let response_captured_body = CapturedBody {
             content_type: Some("application/json".to_string()),
             compression: CompressionType::None,
@@ -431,15 +463,13 @@ mod tests {
             storage: BodyStorage::Memory(response_bytes),
         };
 
-        let response = HttpResponse::new(request.id, 201)
-            .with_body(response_captured_body);
+        let response = HttpResponse::new(request.id, 201).with_body(response_captured_body);
 
-        let sample = TrafficSample::new(request, "/users".to_string())
-            .with_response(response);
+        let sample = TrafficSample::new(request, "/users".to_string()).with_response(response);
 
         let samples = vec![sample];
         let schemas = inferrer.infer_schemas(&samples).await.unwrap();
-        
+
         // Should have both request and response schemas
         assert!(schemas.contains_key("/users_request"));
         assert!(schemas.contains_key("/users_response"));

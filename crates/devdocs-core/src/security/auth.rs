@@ -678,13 +678,13 @@ mod tests {
         let authenticator = Authenticator::new(&config).unwrap();
 
         let admin_permissions =
-            authenticator.resolve_permissions_from_roles(&vec!["admin".to_string()]);
+            authenticator.resolve_permissions_from_roles(&["admin".to_string()]);
         assert!(admin_permissions.contains(&"read".to_string()));
         assert!(admin_permissions.contains(&"write".to_string()));
         assert!(admin_permissions.contains(&"admin".to_string()));
 
         let viewer_permissions =
-            authenticator.resolve_permissions_from_roles(&vec!["viewer".to_string()]);
+            authenticator.resolve_permissions_from_roles(&["viewer".to_string()]);
         assert!(viewer_permissions.contains(&"read".to_string()));
         assert!(!viewer_permissions.contains(&"write".to_string()));
     }

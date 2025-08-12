@@ -1,9 +1,9 @@
 //! Traffic processor for analyzing samples and generating documentation
 
 use devdocs_core::{
-    TrafficSample, DevDocsError,
-    analysis::{AnalysisConfig, TrafficAnalyzer, AnalysisResult},
+    analysis::{AnalysisConfig, AnalysisResult, TrafficAnalyzer},
     documentation::{DocumentationConfig, DocumentationGenerator, GeneratedDocumentation},
+    DevDocsError, TrafficSample,
 };
 use std::collections::VecDeque;
 use tokio::sync::RwLock;
@@ -42,10 +42,10 @@ impl TrafficProcessor {
     /// Add a new traffic sample
     pub async fn add_sample(&self, sample: TrafficSample) -> Result<(), DevDocsError> {
         let mut samples = self.samples.write().await;
-        
+
         // Add new sample
         samples.push_back(sample);
-        
+
         // Keep only the most recent samples
         while samples.len() > self.max_samples {
             samples.pop_front();
@@ -106,7 +106,10 @@ impl TrafficProcessor {
         );
 
         // Generate documentation
-        let documentation = self.doc_generator.generate_documentation(&analysis_result).await?;
+        let documentation = self
+            .doc_generator
+            .generate_documentation(&analysis_result)
+            .await?;
 
         // Update last analysis time
         {
@@ -133,7 +136,10 @@ impl TrafficProcessor {
         if let Ok(samples) = self.samples.try_read() {
             let mut endpoints = std::collections::HashSet::new();
             for sample in samples.iter() {
-                endpoints.insert(format!("{}:{}", sample.request.method, sample.endpoint_pattern));
+                endpoints.insert(format!(
+                    "{}:{}",
+                    sample.request.method, sample.endpoint_pattern
+                ));
             }
             endpoints.len()
         } else {
@@ -193,7 +199,7 @@ impl TrafficProcessor {
     /// Get sample statistics
     pub async fn get_sample_stats(&self) -> SampleStats {
         let samples = self.samples.read().await;
-        
+
         let mut method_counts = std::collections::HashMap::new();
         let mut status_counts = std::collections::HashMap::new();
         let mut endpoint_counts = std::collections::HashMap::new();
@@ -202,10 +208,14 @@ impl TrafficProcessor {
 
         for sample in samples.iter() {
             // Count methods
-            *method_counts.entry(sample.request.method.clone()).or_insert(0) += 1;
+            *method_counts
+                .entry(sample.request.method.clone())
+                .or_insert(0) += 1;
 
             // Count endpoints
-            *endpoint_counts.entry(sample.endpoint_pattern.clone()).or_insert(0) += 1;
+            *endpoint_counts
+                .entry(sample.endpoint_pattern.clone())
+                .or_insert(0) += 1;
 
             // Count status codes and response times
             if let Some(response) = &sample.response {
@@ -245,15 +255,15 @@ pub struct SampleStats {
 mod tests {
     use super::*;
     use devdocs_core::{
-        models::{HttpRequest, HttpResponse},
         documentation::DocumentationConfig,
+        models::{HttpRequest, HttpResponse},
     };
 
     #[tokio::test]
     async fn test_traffic_processor_creation() {
         let analysis_config = AnalysisConfig::default();
         let doc_config = DocumentationConfig::default();
-        
+
         let processor = TrafficProcessor::new(analysis_config, doc_config);
         assert!(processor.is_ok());
     }
@@ -289,11 +299,10 @@ mod tests {
                 format!("/test/{}", i),
                 format!("corr-{}", i),
             );
-            let response = HttpResponse::new(request.id, 200)
-                .with_processing_time(100 + i * 10);
-            let sample = TrafficSample::new(request, "/test/{id}".to_string())
-                .with_response(response);
-            
+            let response = HttpResponse::new(request.id, 200).with_processing_time(100 + i * 10);
+            let sample =
+                TrafficSample::new(request, "/test/{id}".to_string()).with_response(response);
+
             processor.add_sample(sample).await.unwrap();
         }
 
@@ -308,7 +317,7 @@ mod tests {
     async fn test_should_analyze() {
         let mut analysis_config = AnalysisConfig::default();
         analysis_config.min_samples_for_inference = 3;
-        
+
         let doc_config = DocumentationConfig::default();
         let processor = TrafficProcessor::new(analysis_config, doc_config).unwrap();
 

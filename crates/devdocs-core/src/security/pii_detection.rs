@@ -330,8 +330,7 @@ impl PiiDetector {
                 Ok(CompiledPattern {
                     regex: Regex::new(pattern).map_err(|e| {
                         DevDocsError::PiiDetection(format!(
-                            "Invalid regex pattern '{}': {}",
-                            pattern, e
+                            "Invalid regex pattern '{pattern}': {e}"
                         ))
                     })?,
                     confidence,
@@ -383,14 +382,14 @@ impl PiiDetector {
                     let new_path = if path.is_empty() {
                         key.clone()
                     } else {
-                        format!("{}.{}", path, key)
+                        format!("{path}.{key}")
                     };
                     detections.extend(self.scan_json_value(val, &new_path)?);
                 }
             }
             serde_json::Value::Array(arr) => {
                 for (index, val) in arr.iter().enumerate() {
-                    let new_path = format!("{}[{}]", path, index);
+                    let new_path = format!("{path}[{index}]");
                     detections.extend(self.scan_json_value(val, &new_path)?);
                 }
             }
@@ -411,7 +410,7 @@ impl PiiDetector {
             for pattern in patterns {
                 for mat in pattern.regex.find_iter(text) {
                     let mat = mat.map_err(|e| {
-                        DevDocsError::PiiDetection(format!("Regex match error: {}", e))
+                        DevDocsError::PiiDetection(format!("Regex match error: {e}"))
                     })?;
                     let matched_text = mat.as_str();
 
@@ -552,7 +551,7 @@ impl PiiDetector {
                         if local.len() > 2 {
                             format!("{}***{}", &local[..1], domain)
                         } else {
-                            format!("***{}", domain)
+                            format!("***{domain}")
                         }
                     } else {
                         "***".to_string()
@@ -626,6 +625,7 @@ impl PiiDetector {
         self.redact_json_field_recursive(value, &parts, redacted_value, 0)
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn redact_json_field_recursive(
         &self,
         value: &mut serde_json::Value,
@@ -887,8 +887,10 @@ mod tests {
 
     #[test]
     fn test_disabled_pii_detection() {
-        let mut config = PiiProtectionConfig::default();
-        config.enabled = false;
+        let config = PiiProtectionConfig {
+            enabled: false,
+            ..Default::default()
+        };
 
         let detector = PiiDetector::new(&config).unwrap();
         let test_data = r#"{"email": "test@example.com"}"#;

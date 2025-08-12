@@ -56,7 +56,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             api_key: env::var("DEVDOCS_API_KEY").unwrap_or_default(),
-            sampling_rate: 0.1,              // 10% sampling by default
+            sampling_rate: 0.1,                    // 10% sampling by default
             max_body_size: Some(10 * 1024 * 1024), // 10MB
             excluded_paths: vec![
                 "/health".to_string(),

@@ -3,13 +3,13 @@
 //! This module provides comprehensive analysis of HTTP traffic to automatically
 //! generate API documentation from real requests and responses.
 
+pub mod ai_processor;
+pub mod endpoint_detector;
 pub mod schema_inference;
 pub mod traffic_analyzer;
-pub mod endpoint_detector;
-pub mod ai_processor;
 
 use crate::errors::DevDocsError;
-use crate::models::{HttpRequest, HttpResponse, ApiEndpoint, TrafficSample};
+use crate::models::{ApiEndpoint, HttpRequest, HttpResponse, TrafficSample};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -114,7 +114,11 @@ impl TrafficAnalyzer {
 
         // Step 3: Generate AI-powered documentation
         let documentation = if self.config.ai_documentation_enabled {
-            Some(self.ai_processor.generate_documentation(&endpoints, &schemas).await?)
+            Some(
+                self.ai_processor
+                    .generate_documentation(&endpoints, &schemas)
+                    .await?,
+            )
         } else {
             None
         };
@@ -143,7 +147,7 @@ impl TrafficAnalyzer {
         let sample_factor = (samples.len() as f64 / 100.0).min(1.0);
         let endpoint_factor = if endpoints.is_empty() { 0.0 } else { 0.8 };
         let schema_factor = if schemas.is_empty() { 0.0 } else { 0.9 };
-        
+
         (sample_factor + endpoint_factor + schema_factor) / 3.0
     }
 
@@ -162,7 +166,7 @@ impl TrafficAnalyzer {
     }
 }
 
-pub use schema_inference::{SchemaInferrer, FieldInfo, FieldType, ValidationConstraints};
-pub use traffic_analyzer::{EndpointAnalysis, EndpointDocumentation};
-pub use endpoint_detector::EndpointDetector;
 pub use ai_processor::AiProcessor;
+pub use endpoint_detector::EndpointDetector;
+pub use schema_inference::{FieldInfo, FieldType, SchemaInferrer, ValidationConstraints};
+pub use traffic_analyzer::{EndpointAnalysis, EndpointDocumentation};

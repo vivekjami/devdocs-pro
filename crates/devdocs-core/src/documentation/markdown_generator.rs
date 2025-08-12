@@ -33,7 +33,7 @@ impl MarkdownGenerator {
 
         // Title and description
         markdown.push_str(&format!("# {}\n\n", self.config.title));
-        
+
         if let Some(description) = &self.config.description {
             markdown.push_str(&format!("{}\n\n", description));
         }
@@ -113,43 +113,60 @@ impl MarkdownGenerator {
 
         for (resource, resource_endpoints) in resource_groups {
             overview.push_str(&format!("### {} Operations\n\n", resource));
-            
+
             for endpoint in resource_endpoints {
                 let operation_desc = self.describe_operation(endpoint);
                 overview.push_str(&format!("- **{}** - {}\n", endpoint.method, operation_desc));
             }
-            
+
             overview.push_str("\n");
         }
 
         // API statistics
         overview.push_str("### API Statistics\n\n");
         overview.push_str(&format!("- **Total Endpoints:** {}\n", endpoints.len()));
-        
+
         let total_requests: u64 = endpoints.iter().map(|e| e.request_count).sum();
-        overview.push_str(&format!("- **Total Requests Analyzed:** {}\n", total_requests));
-        
-        let avg_response_time: f64 = endpoints.iter()
+        overview.push_str(&format!(
+            "- **Total Requests Analyzed:** {}\n",
+            total_requests
+        ));
+
+        let avg_response_time: f64 = endpoints
+            .iter()
             .map(|e| e.avg_response_time_ms)
-            .sum::<f64>() / endpoints.len() as f64;
-        overview.push_str(&format!("- **Average Response Time:** {:.1}ms\n", avg_response_time));
-        
-        let overall_success_rate: f64 = endpoints.iter()
-            .map(|e| e.success_rate())
-            .sum::<f64>() / endpoints.len() as f64;
-        overview.push_str(&format!("- **Overall Success Rate:** {:.1}%\n\n", overall_success_rate));
+            .sum::<f64>()
+            / endpoints.len() as f64;
+        overview.push_str(&format!(
+            "- **Average Response Time:** {:.1}ms\n",
+            avg_response_time
+        ));
+
+        let overall_success_rate: f64 =
+            endpoints.iter().map(|e| e.success_rate()).sum::<f64>() / endpoints.len() as f64;
+        overview.push_str(&format!(
+            "- **Overall Success Rate:** {:.1}%\n\n",
+            overall_success_rate
+        ));
 
         overview
     }
 
     /// Extract resource name from path pattern
     fn extract_resource_name(&self, path: &str) -> String {
-        let parts: Vec<&str> = path.split('/').filter(|p| !p.is_empty() && !p.starts_with('{')).collect();
-        
+        let parts: Vec<&str> = path
+            .split('/')
+            .filter(|p| !p.is_empty() && !p.starts_with('{'))
+            .collect();
+
         if parts.is_empty() {
             "Root".to_string()
         } else {
-            parts.last().map_or("Unknown", |v| v).to_string().to_title_case()
+            parts
+                .last()
+                .map_or("Unknown", |v| v)
+                .to_string()
+                .to_title_case()
         }
     }
 
@@ -176,12 +193,14 @@ impl MarkdownGenerator {
         let mut auth = String::new();
 
         auth.push_str("This API uses the following authentication methods:\n\n");
-        
+
         // This is a placeholder - in a real implementation, we'd analyze headers
         // from the traffic samples to detect authentication patterns
         auth.push_str("- **API Key**: Include your API key in the `Authorization` header\n");
-        auth.push_str("- **Bearer Token**: Use `Authorization: Bearer <token>` for JWT authentication\n\n");
-        
+        auth.push_str(
+            "- **Bearer Token**: Use `Authorization: Bearer <token>` for JWT authentication\n\n",
+        );
+
         auth.push_str("### Example Authentication\n\n");
         auth.push_str("```bash\n");
         auth.push_str("curl -H \"Authorization: Bearer YOUR_TOKEN\" \\\n");
@@ -202,7 +221,10 @@ impl MarkdownGenerator {
         // Group by path pattern
         let mut path_groups: HashMap<String, Vec<&ApiEndpoint>> = HashMap::new();
         for endpoint in endpoints {
-            path_groups.entry(endpoint.path_pattern.clone()).or_default().push(endpoint);
+            path_groups
+                .entry(endpoint.path_pattern.clone())
+                .or_default()
+                .push(endpoint);
         }
 
         for (path_pattern, path_endpoints) in path_groups {
@@ -221,16 +243,28 @@ impl MarkdownGenerator {
         let mut doc = String::new();
 
         // Method and summary
-        doc.push_str(&format!("#### {} {}\n\n", endpoint.method, endpoint.path_pattern));
-        
+        doc.push_str(&format!(
+            "#### {} {}\n\n",
+            endpoint.method, endpoint.path_pattern
+        ));
+
         let operation_desc = self.describe_operation(endpoint);
         doc.push_str(&format!("{}\n\n", operation_desc));
 
         // Statistics
         doc.push_str("**Statistics:**\n");
-        doc.push_str(&format!("- Requests analyzed: {}\n", endpoint.request_count));
-        doc.push_str(&format!("- Average response time: {:.1}ms\n", endpoint.avg_response_time_ms));
-        doc.push_str(&format!("- Success rate: {:.1}%\n\n", endpoint.success_rate()));
+        doc.push_str(&format!(
+            "- Requests analyzed: {}\n",
+            endpoint.request_count
+        ));
+        doc.push_str(&format!(
+            "- Average response time: {:.1}ms\n",
+            endpoint.avg_response_time_ms
+        ));
+        doc.push_str(&format!(
+            "- Success rate: {:.1}%\n\n",
+            endpoint.success_rate()
+        ));
 
         // Parameters
         let path_params = self.extract_path_parameters(&endpoint.path_pattern);
@@ -238,9 +272,12 @@ impl MarkdownGenerator {
             doc.push_str("**Path Parameters:**\n\n");
             doc.push_str("| Parameter | Type | Description |\n");
             doc.push_str("|-----------|------|--------------|\n");
-            
+
             for param in path_params {
-                doc.push_str(&format!("| `{}` | string | The {} identifier |\n", param, param));
+                doc.push_str(&format!(
+                    "| `{}` | string | The {} identifier |\n",
+                    param, param
+                ));
             }
             doc.push_str("\n");
         }
@@ -269,7 +306,7 @@ impl MarkdownGenerator {
 
         // Response examples
         doc.push_str("**Response Examples:**\n\n");
-        
+
         // Success response
         doc.push_str("**Success (200 OK):**\n");
         doc.push_str("```json\n");
@@ -313,14 +350,18 @@ impl MarkdownGenerator {
     /// Generate cURL example for endpoint
     fn generate_curl_example(&self, endpoint: &ApiEndpoint) -> String {
         let mut curl = String::new();
-        
-        let base_url = self.config.base_url.as_deref().unwrap_or("https://api.example.com");
+
+        let base_url = self
+            .config
+            .base_url
+            .as_deref()
+            .unwrap_or("https://api.example.com");
         let path = endpoint.path_pattern.replace("{id}", "123");
-        
+
         curl.push_str(&format!("curl -X {} \\\n", endpoint.method));
         curl.push_str("  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n");
         curl.push_str("  -H \"Content-Type: application/json\" \\\n");
-        
+
         if matches!(endpoint.method.as_str(), "POST" | "PUT" | "PATCH") {
             curl.push_str("  -d '{\n");
             curl.push_str("    \"data\": {\n");
@@ -328,9 +369,9 @@ impl MarkdownGenerator {
             curl.push_str("    }\n");
             curl.push_str("  }' \\\n");
         }
-        
+
         curl.push_str(&format!("  {}{}\n", base_url, path));
-        
+
         curl
     }
 
@@ -342,11 +383,11 @@ impl MarkdownGenerator {
 
         for (schema_name, schema) in schemas {
             schemas_doc.push_str(&format!("### {}\n\n", schema_name));
-            
+
             if let Some(description) = schema.get("description") {
                 schemas_doc.push_str(&format!("{}\n\n", description.as_str().unwrap_or("")));
             }
-            
+
             schemas_doc.push_str("```json\n");
             schemas_doc.push_str(&serde_json::to_string_pretty(schema).unwrap_or_default());
             schemas_doc.push_str("\n```\n\n");
@@ -359,7 +400,9 @@ impl MarkdownGenerator {
     fn generate_error_handling_section(&self, endpoints: &[ApiEndpoint]) -> String {
         let mut error_doc = String::new();
 
-        error_doc.push_str("This API uses conventional HTTP response codes to indicate success or failure:\n\n");
+        error_doc.push_str(
+            "This API uses conventional HTTP response codes to indicate success or failure:\n\n",
+        );
 
         // Collect all status codes from endpoints
         let mut all_status_codes = std::collections::HashSet::new();
@@ -469,7 +512,10 @@ mod tests {
         ];
 
         let schemas = HashMap::new();
-        let markdown = generator.generate_markdown(&endpoints, &schemas, None).await.unwrap();
+        let markdown = generator
+            .generate_markdown(&endpoints, &schemas, None)
+            .await
+            .unwrap();
 
         assert!(markdown.contains("# API Documentation"));
         assert!(markdown.contains("## Table of Contents"));
@@ -485,7 +531,10 @@ mod tests {
 
         assert_eq!(generator.extract_resource_name("/users"), "Users");
         assert_eq!(generator.extract_resource_name("/api/v1/posts"), "Posts");
-        assert_eq!(generator.extract_resource_name("/users/{id}/comments"), "Comments");
+        assert_eq!(
+            generator.extract_resource_name("/users/{id}/comments"),
+            "Comments"
+        );
     }
 
     #[test]

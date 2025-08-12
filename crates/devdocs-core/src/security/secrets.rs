@@ -492,14 +492,12 @@ impl SecretsManager {
             .rotation_policies
             .get(type_key)
             .cloned()
-            .or_else(|| {
-                Some(RotationPolicy {
-                    rotation_interval_days: self.config.rotation.default_rotation_days,
-                    notification_days_before: 7,
-                    auto_rotate: self.config.rotation.auto_rotation,
-                    require_approval: false,
-                })
-            })
+            .or(Some(RotationPolicy {
+                rotation_interval_days: self.config.rotation.default_rotation_days,
+                notification_days_before: 7,
+                auto_rotate: self.config.rotation.auto_rotation,
+                require_approval: false,
+            }))
     }
 
     fn generate_secret_value(&self, secret_type: SecretType) -> Result<String, DevDocsError> {
@@ -507,7 +505,7 @@ impl SecretsManager {
             SecretType::ApiKey => {
                 let mut bytes = vec![0u8; 32];
                 self.encryptor.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate API key: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate API key: {e}"))
                 })?;
                 Ok(format!(
                     "dk_{}",
@@ -517,28 +515,28 @@ impl SecretsManager {
             SecretType::DatabasePassword => {
                 let mut bytes = vec![0u8; 24];
                 self.encryptor.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate password: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate password: {e}"))
                 })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
             SecretType::JwtSigningKey => {
                 let mut bytes = vec![0u8; 64];
                 self.encryptor.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate JWT key: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate JWT key: {e}"))
                 })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
             SecretType::EncryptionKey => {
                 let mut bytes = vec![0u8; 32];
                 self.encryptor.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate encryption key: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate encryption key: {e}"))
                 })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
             _ => {
                 let mut bytes = vec![0u8; 32];
                 self.encryptor.rng.fill(&mut bytes).map_err(|e| {
-                    DevDocsError::Encryption(format!("Failed to generate secret: {}", e))
+                    DevDocsError::Encryption(format!("Failed to generate secret: {e}"))
                 })?;
                 Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
             }
@@ -583,7 +581,7 @@ impl LocalFileSecretsStorage {
     pub fn new(base_path: &str, encryptor: SecretsEncryptor) -> Result<Self, DevDocsError> {
         let path = std::path::PathBuf::from(base_path);
         std::fs::create_dir_all(&path).map_err(|e| {
-            DevDocsError::Storage(format!("Failed to create secrets directory: {}", e))
+            DevDocsError::Storage(format!("Failed to create secrets directory: {e}"))
         })?;
 
         Ok(Self {
@@ -593,7 +591,7 @@ impl LocalFileSecretsStorage {
     }
 
     fn get_secret_file_path(&self, id: &str) -> std::path::PathBuf {
-        self.base_path.join(format!("{}.secret", id))
+        self.base_path.join(format!("{id}.secret"))
     }
 }
 
@@ -627,12 +625,11 @@ impl SecretsStorage for LocalFileSecretsStorage {
             encrypted_value,
         };
 
-        let json_data =
-            serde_json::to_vec(&storage_data).map_err(|e| DevDocsError::Serialization(e))?;
+        let json_data = serde_json::to_vec(&storage_data).map_err(DevDocsError::Serialization)?;
 
         tokio::fs::write(&file_path, json_data)
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to write secret file: {}", e)))?;
+            .map_err(|e| DevDocsError::Storage(format!("Failed to write secret file: {e}")))?;
 
         Ok(())
     }
@@ -646,14 +643,14 @@ impl SecretsStorage for LocalFileSecretsStorage {
 
         let json_data = tokio::fs::read(&file_path)
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read secret file: {}", e)))?;
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read secret file: {e}")))?;
 
         let stored_secret: StoredSecret =
-            serde_json::from_slice(&json_data).map_err(|e| DevDocsError::Serialization(e))?;
+            serde_json::from_slice(&json_data).map_err(DevDocsError::Serialization)?;
 
         let decrypted_value = self.encryptor.decrypt(&stored_secret.encrypted_value)?;
         let value_string = String::from_utf8(decrypted_value)
-            .map_err(|e| DevDocsError::Storage(format!("Invalid UTF-8 in secret value: {}", e)))?;
+            .map_err(|e| DevDocsError::Storage(format!("Invalid UTF-8 in secret value: {e}")))?;
 
         let secret = SecureSecret {
             id: stored_secret.metadata.id,
@@ -673,19 +670,19 @@ impl SecretsStorage for LocalFileSecretsStorage {
 
     async fn list_secrets(&self) -> Result<Vec<SecretMetadata>, DevDocsError> {
         let mut secrets = Vec::new();
-        let mut entries = tokio::fs::read_dir(&self.base_path).await.map_err(|e| {
-            DevDocsError::Storage(format!("Failed to read secrets directory: {}", e))
-        })?;
+        let mut entries = tokio::fs::read_dir(&self.base_path)
+            .await
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read secrets directory: {e}")))?;
 
         while let Some(entry) = entries
             .next_entry()
             .await
-            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {}", e)))?
+            .map_err(|e| DevDocsError::Storage(format!("Failed to read directory entry: {e}")))?
         {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.ends_with(".secret") {
                     let json_data = tokio::fs::read(entry.path()).await.map_err(|e| {
-                        DevDocsError::Storage(format!("Failed to read secret file: {}", e))
+                        DevDocsError::Storage(format!("Failed to read secret file: {e}"))
                     })?;
 
                     if let Ok(stored_secret) = serde_json::from_slice::<StoredSecret>(&json_data) {
@@ -702,9 +699,9 @@ impl SecretsStorage for LocalFileSecretsStorage {
         let file_path = self.get_secret_file_path(id);
 
         if file_path.exists() {
-            tokio::fs::remove_file(&file_path).await.map_err(|e| {
-                DevDocsError::Storage(format!("Failed to delete secret file: {}", e))
-            })?;
+            tokio::fs::remove_file(&file_path)
+                .await
+                .map_err(|e| DevDocsError::Storage(format!("Failed to delete secret file: {e}")))?;
         }
 
         Ok(())
@@ -753,11 +750,12 @@ mod tests {
     #[tokio::test]
     async fn test_secrets_manager_creation() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = SecretsConfig::default();
-        config.storage_backend = SecretsStorageBackend::LocalFile {
-            path: temp_dir.path().to_string_lossy().to_string(),
+        let config = SecretsConfig {
+            storage_backend: SecretsStorageBackend::LocalFile {
+                path: temp_dir.path().to_string_lossy().to_string(),
+            },
+            ..Default::default()
         };
-
         let manager = SecretsManager::new(&config);
         assert!(manager.is_ok());
     }
@@ -765,9 +763,11 @@ mod tests {
     #[tokio::test]
     async fn test_store_and_retrieve_secret() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = SecretsConfig::default();
-        config.storage_backend = SecretsStorageBackend::LocalFile {
-            path: temp_dir.path().to_string_lossy().to_string(),
+        let config = SecretsConfig {
+            storage_backend: SecretsStorageBackend::LocalFile {
+                path: temp_dir.path().to_string_lossy().to_string(),
+            },
+            ..Default::default()
         };
 
         let mut manager = SecretsManager::new(&config).unwrap();
@@ -788,9 +788,11 @@ mod tests {
     #[tokio::test]
     async fn test_list_secrets() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = SecretsConfig::default();
-        config.storage_backend = SecretsStorageBackend::LocalFile {
-            path: temp_dir.path().to_string_lossy().to_string(),
+        let config = SecretsConfig {
+            storage_backend: SecretsStorageBackend::LocalFile {
+                path: temp_dir.path().to_string_lossy().to_string(),
+            },
+            ..Default::default()
         };
 
         let mut manager = SecretsManager::new(&config).unwrap();
@@ -820,9 +822,11 @@ mod tests {
     #[tokio::test]
     async fn test_delete_secret() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = SecretsConfig::default();
-        config.storage_backend = SecretsStorageBackend::LocalFile {
-            path: temp_dir.path().to_string_lossy().to_string(),
+        let config = SecretsConfig {
+            storage_backend: SecretsStorageBackend::LocalFile {
+                path: temp_dir.path().to_string_lossy().to_string(),
+            },
+            ..Default::default()
         };
 
         let mut manager = SecretsManager::new(&config).unwrap();
@@ -848,9 +852,11 @@ mod tests {
     #[tokio::test]
     async fn test_rotate_secret() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = SecretsConfig::default();
-        config.storage_backend = SecretsStorageBackend::LocalFile {
-            path: temp_dir.path().to_string_lossy().to_string(),
+        let config = SecretsConfig {
+            storage_backend: SecretsStorageBackend::LocalFile {
+                path: temp_dir.path().to_string_lossy().to_string(),
+            },
+            ..Default::default()
         };
 
         let mut manager = SecretsManager::new(&config).unwrap();

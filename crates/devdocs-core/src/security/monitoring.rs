@@ -716,81 +716,65 @@ impl SecurityMetrics {
             "security_events_total",
             "Total number of security events processed",
         )
-        .map_err(|e| DevDocsError::Configuration(format!("Failed to create counter: {}", e)))?;
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to create counter: {e}")))?;
 
         let threats_detected_total =
             Counter::new("threats_detected_total", "Total number of threats detected").map_err(
-                |e| DevDocsError::Configuration(format!("Failed to create counter: {}", e)),
+                |e| DevDocsError::Configuration(format!("Failed to create counter: {e}")),
             )?;
 
         let anomalies_detected_total = Counter::new(
             "anomalies_detected_total",
             "Total number of anomalies detected",
         )
-        .map_err(|e| DevDocsError::Configuration(format!("Failed to create counter: {}", e)))?;
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to create counter: {e}")))?;
 
         let alerts_sent_total = Counter::new("alerts_sent_total", "Total number of alerts sent")
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to create counter: {}", e)))?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to create counter: {e}")))?;
 
         let active_threats = Gauge::new("active_threats", "Number of currently active threats")
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to create gauge: {}", e)))?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to create gauge: {e}")))?;
 
         let blocked_ips = Gauge::new("blocked_ips", "Number of currently blocked IP addresses")
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to create gauge: {}", e)))?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to create gauge: {e}")))?;
 
         let event_processing_duration = Histogram::with_opts(prometheus::HistogramOpts::new(
             "event_processing_duration_seconds",
             "Time spent processing security events",
         ))
-        .map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {}", e)))?;
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {e}")))?;
 
         let threat_detection_duration = Histogram::with_opts(prometheus::HistogramOpts::new(
             "threat_detection_duration_seconds",
             "Time spent on threat detection",
         ))
-        .map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {}", e)))?;
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to create histogram: {e}")))?;
 
         // Register metrics
         registry
             .register(Box::new(security_events_total.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(threats_detected_total.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(anomalies_detected_total.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(alerts_sent_total.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(active_threats.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(blocked_ips.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(event_processing_duration.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
         registry
             .register(Box::new(threat_detection_duration.clone()))
-            .map_err(|e| {
-                DevDocsError::Configuration(format!("Failed to register metric: {}", e))
-            })?;
+            .map_err(|e| DevDocsError::Configuration(format!("Failed to register metric: {e}")))?;
 
         Ok(Self {
             registry,

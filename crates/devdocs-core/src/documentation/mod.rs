@@ -4,9 +4,9 @@
 //! including OpenAPI specification generation, interactive HTML documentation,
 //! and real-time updates.
 
-pub mod openapi_generator;
 pub mod html_generator;
 pub mod markdown_generator;
+pub mod openapi_generator;
 pub mod realtime_updater;
 
 use crate::analysis::AnalysisResult;
@@ -115,21 +115,31 @@ impl DocumentationGenerator {
         &self,
         analysis: &AnalysisResult,
     ) -> Result<GeneratedDocumentation, DevDocsError> {
-        tracing::info!("Generating documentation for {} endpoints", analysis.endpoints.len());
+        tracing::info!(
+            "Generating documentation for {} endpoints",
+            analysis.endpoints.len()
+        );
 
         // Generate OpenAPI specification
-        let openapi_spec = self.openapi_generator
+        let openapi_spec = self
+            .openapi_generator
             .generate_spec(&analysis.endpoints, &analysis.schemas)
             .await?;
 
         // Generate HTML documentation
-        let html_content = self.html_generator
+        let html_content = self
+            .html_generator
             .generate_html(&openapi_spec, analysis.documentation.as_deref())
             .await?;
 
         // Generate Markdown documentation
-        let markdown_content = self.markdown_generator
-            .generate_markdown(&analysis.endpoints, &analysis.schemas, analysis.documentation.as_deref())
+        let markdown_content = self
+            .markdown_generator
+            .generate_markdown(
+                &analysis.endpoints,
+                &analysis.schemas,
+                analysis.documentation.as_deref(),
+            )
             .await?;
 
         Ok(GeneratedDocumentation {
@@ -157,7 +167,7 @@ impl DocumentationGenerator {
     }
 }
 
-pub use openapi_generator::OpenApiGenerator;
 pub use html_generator::HtmlGenerator;
 pub use markdown_generator::MarkdownGenerator;
+pub use openapi_generator::OpenApiGenerator;
 pub use realtime_updater::RealtimeUpdater;

@@ -526,8 +526,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_disabled_rate_limiting() {
-        let mut config = RateLimitingConfig::default();
-        config.enabled = false;
+        let config = RateLimitingConfig {
+            enabled: false,
+            ..Default::default()
+        };
 
         let limiter = RateLimiter::new(&config).unwrap();
 

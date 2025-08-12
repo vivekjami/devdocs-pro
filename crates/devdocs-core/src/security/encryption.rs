@@ -175,7 +175,7 @@ impl DataEncryptor {
         }
 
         let encrypted: EncryptedData = serde_json::from_slice(encrypted_data).map_err(|e| {
-            DevDocsError::Encryption(format!("Failed to parse encrypted data: {}", e))
+            DevDocsError::Encryption(format!("Failed to parse encrypted data: {e}"))
         })?;
 
         let key = self.keys.get(&encrypted.key_id).ok_or_else(|| {
@@ -222,7 +222,7 @@ impl DataEncryptor {
                 self.config.key_derivation.parallelism,
                 Some(32), // 32-byte output
             )
-            .map_err(|e| DevDocsError::Encryption(format!("Invalid Argon2 params: {}", e)))?,
+            .map_err(|e| DevDocsError::Encryption(format!("Invalid Argon2 params: {e}")))?,
         );
 
         // Use salt directly for key derivation
@@ -231,11 +231,11 @@ impl DataEncryptor {
         let mut output = vec![0u8; 32];
         argon2
             .hash_password_into(
-                format!("{}:{}", master_key, context).as_bytes(),
+                format!("{master_key}:{context}").as_bytes(),
                 salt_bytes,
                 &mut output,
             )
-            .map_err(|e| DevDocsError::Encryption(format!("Key derivation failed: {}", e)))?;
+            .map_err(|e| DevDocsError::Encryption(format!("Key derivation failed: {e}")))?;
 
         Ok(output)
     }
@@ -252,7 +252,7 @@ impl DataEncryptor {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let ciphertext = cipher
             .encrypt(&nonce, data)
-            .map_err(|e| DevDocsError::Encryption(format!("AES-GCM encryption failed: {}", e)))?;
+            .map_err(|e| DevDocsError::Encryption(format!("AES-GCM encryption failed: {e}")))?;
 
         let encrypted_data = EncryptedData {
             key_id: key.key_id.clone(),
@@ -264,7 +264,7 @@ impl DataEncryptor {
         };
 
         serde_json::to_vec(&encrypted_data).map_err(|e| {
-            DevDocsError::Encryption(format!("Failed to serialize encrypted data: {}", e))
+            DevDocsError::Encryption(format!("Failed to serialize encrypted data: {e}"))
         })
     }
 
@@ -284,14 +284,14 @@ impl DataEncryptor {
 
         cipher
             .decrypt(nonce, ciphertext_with_tag.as_slice())
-            .map_err(|e| DevDocsError::Encryption(format!("AES-GCM decryption failed: {}", e)))
+            .map_err(|e| DevDocsError::Encryption(format!("AES-GCM decryption failed: {e}")))
     }
 
     fn generate_key(&self) -> Result<Vec<u8>, DevDocsError> {
         let mut key = vec![0u8; 32]; // 256-bit key
         self.rng
             .fill(&mut key)
-            .map_err(|e| DevDocsError::Encryption(format!("Key generation failed: {}", e)))?;
+            .map_err(|e| DevDocsError::Encryption(format!("Key generation failed: {e}")))?;
         Ok(key)
     }
 
@@ -303,7 +303,7 @@ impl DataEncryptor {
                 Ok("default_master_key_change_in_production".to_string())
             })
             .map_err(|e: std::env::VarError| {
-                DevDocsError::Encryption(format!("Master key not available: {}", e))
+                DevDocsError::Encryption(format!("Master key not available: {e}"))
             })
     }
 
@@ -384,8 +384,10 @@ mod tests {
 
     #[test]
     fn test_encryption_disabled() {
-        let mut config = EncryptionConfig::default();
-        config.enabled = false;
+        let config = EncryptionConfig {
+            enabled: false,
+            ..Default::default()
+        };
 
         let encryptor = DataEncryptor::new(&config).unwrap();
         let data = b"test data";
@@ -423,8 +425,10 @@ mod tests {
 
     #[test]
     fn test_should_rotate_key() {
-        let mut config = EncryptionConfig::default();
-        config.key_rotation_hours = 0; // Immediate rotation needed
+        let config = EncryptionConfig {
+            key_rotation_hours: 0,
+            ..Default::default()
+        }; // Immediate rotation needed
 
         let encryptor = DataEncryptor::new(&config).unwrap();
 

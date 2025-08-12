@@ -38,17 +38,26 @@ impl OpenApiGenerator {
 
         // Servers section
         if let Some(base_url) = &self.config.base_url {
-            spec.insert("servers".to_string(), json!([{
-                "url": base_url,
-                "description": "API Server"
-            }]));
+            spec.insert(
+                "servers".to_string(),
+                json!([{
+                    "url": base_url,
+                    "description": "API Server"
+                }]),
+            );
         }
 
         // Paths section
-        spec.insert("paths".to_string(), self.generate_paths_section(endpoints, schemas).await?);
+        spec.insert(
+            "paths".to_string(),
+            self.generate_paths_section(endpoints, schemas).await?,
+        );
 
         // Components section
-        spec.insert("components".to_string(), self.generate_components_section(schemas));
+        spec.insert(
+            "components".to_string(),
+            self.generate_components_section(schemas),
+        );
 
         // Tags section
         spec.insert("tags".to_string(), self.generate_tags_section(endpoints));
@@ -59,10 +68,10 @@ impl OpenApiGenerator {
     /// Generate info section of OpenAPI spec
     fn generate_info_section(&self) -> Value {
         let mut info = Map::new();
-        
+
         info.insert("title".to_string(), json!(self.config.title));
         info.insert("version".to_string(), json!(self.config.version));
-        
+
         if let Some(description) = &self.config.description {
             info.insert("description".to_string(), json!(description));
         }
@@ -162,7 +171,10 @@ impl OpenApiGenerator {
         }
 
         // Generate responses
-        operation.insert("responses".to_string(), self.generate_responses(endpoint, schemas));
+        operation.insert(
+            "responses".to_string(),
+            self.generate_responses(endpoint, schemas),
+        );
 
         Ok(Value::Object(operation))
     }
@@ -170,7 +182,8 @@ impl OpenApiGenerator {
     /// Generate operation ID from endpoint
     fn generate_operation_id(&self, endpoint: &ApiEndpoint) -> String {
         let method = endpoint.method.to_lowercase();
-        let path_parts: Vec<&str> = endpoint.path_pattern
+        let path_parts: Vec<&str> = endpoint
+            .path_pattern
             .split('/')
             .filter(|part| !part.is_empty() && !part.starts_with('{'))
             .collect();
@@ -217,7 +230,8 @@ impl OpenApiGenerator {
 
     /// Generate tags for operation
     fn generate_operation_tags(&self, endpoint: &ApiEndpoint) -> Vec<String> {
-        let path_parts: Vec<&str> = endpoint.path_pattern
+        let path_parts: Vec<&str> = endpoint
+            .path_pattern
             .split('/')
             .filter(|part| !part.is_empty() && !part.starts_with('{'))
             .collect();
@@ -307,7 +321,13 @@ impl OpenApiGenerator {
         // Look for request schema
         let schema_key = format!("{}_request", endpoint.path_pattern);
         let schema_ref = if schemas.contains_key(&schema_key) {
-            format!("#/components/schemas/{}", schema_key.replace('/', "_").replace("{", "").replace("}", ""))
+            format!(
+                "#/components/schemas/{}",
+                schema_key
+                    .replace('/', "_")
+                    .replace("{", "")
+                    .replace("}", "")
+            )
         } else {
             // Default schema
             "#/components/schemas/DefaultRequest".to_string()
@@ -326,7 +346,11 @@ impl OpenApiGenerator {
     }
 
     /// Generate responses specification
-    fn generate_responses(&self, endpoint: &ApiEndpoint, schemas: &HashMap<String, Value>) -> Value {
+    fn generate_responses(
+        &self,
+        endpoint: &ApiEndpoint,
+        schemas: &HashMap<String, Value>,
+    ) -> Value {
         let mut responses = Map::new();
 
         // Analyze status codes from endpoint statistics
@@ -341,18 +365,27 @@ impl OpenApiGenerator {
             if (200..300).contains(status_code) {
                 let schema_key = format!("{}_response", endpoint.path_pattern);
                 let schema_ref = if schemas.contains_key(&schema_key) {
-                    format!("#/components/schemas/{}", schema_key.replace('/', "_").replace("{", "").replace("}", ""))
+                    format!(
+                        "#/components/schemas/{}",
+                        schema_key
+                            .replace('/', "_")
+                            .replace("{", "")
+                            .replace("}", "")
+                    )
                 } else {
                     "#/components/schemas/DefaultResponse".to_string()
                 };
 
-                response_obj.insert("content".to_string(), json!({
-                    "application/json": {
-                        "schema": {
-                            "$ref": schema_ref
+                response_obj.insert(
+                    "content".to_string(),
+                    json!({
+                        "application/json": {
+                            "schema": {
+                                "$ref": schema_ref
+                            }
                         }
-                    }
-                }));
+                    }),
+                );
             }
 
             responses.insert(status_str, Value::Object(response_obj));
@@ -360,16 +393,19 @@ impl OpenApiGenerator {
 
         // Add default response if no responses were found
         if responses.is_empty() {
-            responses.insert("200".to_string(), json!({
-                "description": "Successful response",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/DefaultResponse"
+            responses.insert(
+                "200".to_string(),
+                json!({
+                    "description": "Successful response",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DefaultResponse"
+                            }
                         }
                     }
-                }
-            }));
+                }),
+            );
         }
 
         Value::Object(responses)
@@ -399,56 +435,68 @@ impl OpenApiGenerator {
 
         // Add inferred schemas
         for (schema_name, schema) in schemas {
-            let component_name = schema_name.replace('/', "_").replace("{", "").replace("}", "");
+            let component_name = schema_name
+                .replace('/', "_")
+                .replace("{", "")
+                .replace("}", "");
             schemas_obj.insert(component_name, schema.clone());
         }
 
         // Add default schemas if none exist
         if schemas_obj.is_empty() {
-            schemas_obj.insert("DefaultRequest".to_string(), json!({
-                "type": "object",
-                "properties": {
-                    "data": {
-                        "type": "object",
-                        "description": "Request data"
+            schemas_obj.insert(
+                "DefaultRequest".to_string(),
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "data": {
+                            "type": "object",
+                            "description": "Request data"
+                        }
                     }
-                }
-            }));
+                }),
+            );
 
-            schemas_obj.insert("DefaultResponse".to_string(), json!({
-                "type": "object",
-                "properties": {
-                    "data": {
-                        "type": "object",
-                        "description": "Response data"
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "Response message"
+            schemas_obj.insert(
+                "DefaultResponse".to_string(),
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "data": {
+                            "type": "object",
+                            "description": "Response data"
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "Response message"
+                        }
                     }
-                }
-            }));
+                }),
+            );
         }
 
         // Add error schemas
-        schemas_obj.insert("Error".to_string(), json!({
-            "type": "object",
-            "required": ["error", "message"],
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "description": "Error code"
-                },
-                "message": {
-                    "type": "string",
-                    "description": "Error message"
-                },
-                "details": {
-                    "type": "object",
-                    "description": "Additional error details"
+        schemas_obj.insert(
+            "Error".to_string(),
+            json!({
+                "type": "object",
+                "required": ["error", "message"],
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "description": "Error code"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Error message"
+                    },
+                    "details": {
+                        "type": "object",
+                        "description": "Additional error details"
+                    }
                 }
-            }
-        }));
+            }),
+        );
 
         components.insert("schemas".to_string(), Value::Object(schemas_obj));
 
@@ -468,10 +516,12 @@ impl OpenApiGenerator {
 
         let tags: Vec<Value> = tags_set
             .into_iter()
-            .map(|tag| json!({
-                "name": tag,
-                "description": format!("Operations related to {}", tag)
-            }))
+            .map(|tag| {
+                json!({
+                    "name": tag,
+                    "description": format!("Operations related to {}", tag)
+                })
+            })
             .collect();
 
         json!(tags)

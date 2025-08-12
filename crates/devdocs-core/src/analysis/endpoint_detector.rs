@@ -39,14 +39,17 @@ impl EndpointDetector {
     /// Create a new endpoint detector
     pub fn new(config: &AnalysisConfig) -> Result<Self, DevDocsError> {
         let uuid_regex = Regex::new(
-            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-        ).map_err(|e| DevDocsError::Configuration(format!("Failed to compile UUID regex: {}", e)))?;
-        
-        let number_regex = Regex::new(r"/\d+")
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to compile number regex: {}", e)))?;
-        
-        let date_regex = Regex::new(r"/\d{4}-\d{2}-\d{2}")
-            .map_err(|e| DevDocsError::Configuration(format!("Failed to compile date regex: {}", e)))?;
+            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        )
+        .map_err(|e| DevDocsError::Configuration(format!("Failed to compile UUID regex: {}", e)))?;
+
+        let number_regex = Regex::new(r"/\d+").map_err(|e| {
+            DevDocsError::Configuration(format!("Failed to compile number regex: {}", e))
+        })?;
+
+        let date_regex = Regex::new(r"/\d{4}-\d{2}-\d{2}").map_err(|e| {
+            DevDocsError::Configuration(format!("Failed to compile date regex: {}", e))
+        })?;
 
         Ok(Self {
             config: config.clone(),
@@ -57,23 +60,25 @@ impl EndpointDetector {
     }
 
     /// Detect endpoints from traffic samples
-    pub async fn detect_endpoints(&self, samples: &[TrafficSample]) -> Result<Vec<ApiEndpoint>, DevDocsError> {
+    pub async fn detect_endpoints(
+        &self,
+        samples: &[TrafficSample],
+    ) -> Result<Vec<ApiEndpoint>, DevDocsError> {
         let mut endpoint_map: HashMap<String, ApiEndpoint> = HashMap::new();
 
         for sample in samples {
-            let pattern = self.extract_endpoint_pattern(&sample.request.path, &sample.request.method);
+            let pattern =
+                self.extract_endpoint_pattern(&sample.request.path, &sample.request.method);
             let key = format!("{}:{}", sample.request.method, pattern);
 
-            let endpoint = endpoint_map.entry(key).or_insert_with(|| {
-                ApiEndpoint::new(pattern, sample.request.method.clone())
-            });
+            let endpoint = endpoint_map
+                .entry(key)
+                .or_insert_with(|| ApiEndpoint::new(pattern, sample.request.method.clone()));
 
             // Update endpoint statistics
             if let Some(response) = &sample.response {
-                endpoint.increment_request(
-                    response.processing_time_ms as f64,
-                    response.status_code,
-                );
+                endpoint
+                    .increment_request(response.processing_time_ms as f64, response.status_code);
             } else {
                 // Handle cases where we only have request data
                 endpoint.increment_request(0.0, 0);
@@ -81,7 +86,7 @@ impl EndpointDetector {
         }
 
         let mut endpoints: Vec<ApiEndpoint> = endpoint_map.into_values().collect();
-        
+
         // Sort by request count (most popular first)
         endpoints.sort_by(|a, b| b.request_count.cmp(&a.request_count));
 
@@ -148,22 +153,24 @@ impl EndpointDetector {
     }
 
     /// Analyze endpoint patterns to extract parameter information
-    pub fn analyze_endpoint_patterns(&self, samples: &[TrafficSample]) -> Result<Vec<EndpointPattern>, DevDocsError> {
+    pub fn analyze_endpoint_patterns(
+        &self,
+        samples: &[TrafficSample],
+    ) -> Result<Vec<EndpointPattern>, DevDocsError> {
         let mut pattern_map: HashMap<String, EndpointPattern> = HashMap::new();
 
         for sample in samples {
-            let pattern_key = self.extract_endpoint_pattern(&sample.request.path, &sample.request.method);
+            let pattern_key =
+                self.extract_endpoint_pattern(&sample.request.path, &sample.request.method);
             let key = format!("{}:{}", sample.request.method, pattern_key);
 
-            let endpoint_pattern = pattern_map.entry(key).or_insert_with(|| {
-                EndpointPattern {
-                    pattern: pattern_key.clone(),
-                    method: sample.request.method.clone(),
-                    path_parameters: self.extract_path_parameters(&pattern_key),
-                    query_parameters: Vec::new(),
-                    request_content_types: Vec::new(),
-                    response_content_types: Vec::new(),
-                }
+            let endpoint_pattern = pattern_map.entry(key).or_insert_with(|| EndpointPattern {
+                pattern: pattern_key.clone(),
+                method: sample.request.method.clone(),
+                path_parameters: self.extract_path_parameters(&pattern_key),
+                query_parameters: Vec::new(),
+                request_content_types: Vec::new(),
+                response_content_types: Vec::new(),
             });
 
             // Collect query parameters
@@ -175,16 +182,26 @@ impl EndpointDetector {
 
             // Collect request content types
             if let Some(content_type) = sample.request.headers.get("content-type") {
-                if !endpoint_pattern.request_content_types.contains(content_type) {
-                    endpoint_pattern.request_content_types.push(content_type.clone());
+                if !endpoint_pattern
+                    .request_content_types
+                    .contains(content_type)
+                {
+                    endpoint_pattern
+                        .request_content_types
+                        .push(content_type.clone());
                 }
             }
 
             // Collect response content types
             if let Some(response) = &sample.response {
                 if let Some(content_type) = response.headers.get("content-type") {
-                    if !endpoint_pattern.response_content_types.contains(content_type) {
-                        endpoint_pattern.response_content_types.push(content_type.clone());
+                    if !endpoint_pattern
+                        .response_content_types
+                        .contains(content_type)
+                    {
+                        endpoint_pattern
+                            .response_content_types
+                            .push(content_type.clone());
                     }
                 }
             }
@@ -237,10 +254,11 @@ impl EndpointDetector {
             }
 
             // Check for API key patterns
-            if sample.request.headers.contains_key("x-api-key") ||
-               sample.request.headers.contains_key("api-key") ||
-               sample.request.query_params.contains_key("api_key") ||
-               sample.request.query_params.contains_key("apikey") {
+            if sample.request.headers.contains_key("x-api-key")
+                || sample.request.headers.contains_key("api-key")
+                || sample.request.query_params.contains_key("api_key")
+                || sample.request.query_params.contains_key("apikey")
+            {
                 auth_patterns.insert("API Key".to_string());
             }
 
@@ -323,7 +341,7 @@ mod tests {
         let detector = EndpointDetector::new(&config).unwrap();
 
         let mut samples = Vec::new();
-        
+
         // Create sample requests
         for i in 1..=5 {
             let request = HttpRequest::new(
@@ -331,11 +349,10 @@ mod tests {
                 format!("/users/{}", i),
                 format!("corr-{}", i),
             );
-            let response = HttpResponse::new(request.id, 200)
-                .with_processing_time(100);
-            
-            let sample = TrafficSample::new(request, "/users/{id}".to_string())
-                .with_response(response);
+            let response = HttpResponse::new(request.id, 200).with_processing_time(100);
+
+            let sample =
+                TrafficSample::new(request, "/users/{id}".to_string()).with_response(response);
             samples.push(sample);
         }
 
@@ -353,15 +370,27 @@ mod tests {
 
         let samples = vec![
             TrafficSample::new(
-                HttpRequest::new("GET".to_string(), "/api/v1/users".to_string(), "corr-1".to_string()),
+                HttpRequest::new(
+                    "GET".to_string(),
+                    "/api/v1/users".to_string(),
+                    "corr-1".to_string(),
+                ),
                 "/api/v1/users".to_string(),
             ),
             TrafficSample::new(
-                HttpRequest::new("GET".to_string(), "/api/v2/users".to_string(), "corr-2".to_string()),
+                HttpRequest::new(
+                    "GET".to_string(),
+                    "/api/v2/users".to_string(),
+                    "corr-2".to_string(),
+                ),
                 "/api/v2/users".to_string(),
             ),
             TrafficSample::new(
-                HttpRequest::new("GET".to_string(), "/api/v1.1/posts".to_string(), "corr-3".to_string()),
+                HttpRequest::new(
+                    "GET".to_string(),
+                    "/api/v1.1/posts".to_string(),
+                    "corr-3".to_string(),
+                ),
                 "/api/v1.1/posts".to_string(),
             ),
         ];
@@ -382,22 +411,37 @@ mod tests {
         headers2.insert("x-api-key".to_string(), "key123".to_string());
 
         let mut headers3 = HashMap::new();
-        headers3.insert("authorization".to_string(), "Basic dXNlcjpwYXNz".to_string());
+        headers3.insert(
+            "authorization".to_string(),
+            "Basic dXNlcjpwYXNz".to_string(),
+        );
 
         let samples = vec![
             TrafficSample::new(
-                HttpRequest::new("GET".to_string(), "/api/users".to_string(), "corr-1".to_string())
-                    .with_headers(headers1),
+                HttpRequest::new(
+                    "GET".to_string(),
+                    "/api/users".to_string(),
+                    "corr-1".to_string(),
+                )
+                .with_headers(headers1),
                 "/api/users".to_string(),
             ),
             TrafficSample::new(
-                HttpRequest::new("GET".to_string(), "/api/posts".to_string(), "corr-2".to_string())
-                    .with_headers(headers2),
+                HttpRequest::new(
+                    "GET".to_string(),
+                    "/api/posts".to_string(),
+                    "corr-2".to_string(),
+                )
+                .with_headers(headers2),
                 "/api/posts".to_string(),
             ),
             TrafficSample::new(
-                HttpRequest::new("GET".to_string(), "/api/comments".to_string(), "corr-3".to_string())
-                    .with_headers(headers3),
+                HttpRequest::new(
+                    "GET".to_string(),
+                    "/api/comments".to_string(),
+                    "corr-3".to_string(),
+                )
+                .with_headers(headers3),
                 "/api/comments".to_string(),
             ),
         ];
@@ -420,26 +464,32 @@ mod tests {
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
 
-        let request = HttpRequest::new("GET".to_string(), "/users/123".to_string(), "corr-1".to_string())
-            .with_query_params(query_params)
-            .with_headers(headers.clone());
+        let request = HttpRequest::new(
+            "GET".to_string(),
+            "/users/123".to_string(),
+            "corr-1".to_string(),
+        )
+        .with_query_params(query_params)
+        .with_headers(headers.clone());
 
-        let response = HttpResponse::new(request.id, 200)
-            .with_headers(headers);
+        let response = HttpResponse::new(request.id, 200).with_headers(headers);
 
-        let sample = TrafficSample::new(request, "/users/{id}".to_string())
-            .with_response(response);
+        let sample = TrafficSample::new(request, "/users/{id}".to_string()).with_response(response);
 
         let patterns = detector.analyze_endpoint_patterns(&[sample]).unwrap();
         assert_eq!(patterns.len(), 1);
-        
+
         let pattern = &patterns[0];
         assert_eq!(pattern.pattern, "/users/{id}");
         assert_eq!(pattern.method, "GET");
         assert_eq!(pattern.path_parameters, vec!["id"]);
         assert!(pattern.query_parameters.contains(&"page".to_string()));
         assert!(pattern.query_parameters.contains(&"limit".to_string()));
-        assert!(pattern.request_content_types.contains(&"application/json".to_string()));
-        assert!(pattern.response_content_types.contains(&"application/json".to_string()));
+        assert!(pattern
+            .request_content_types
+            .contains(&"application/json".to_string()));
+        assert!(pattern
+            .response_content_types
+            .contains(&"application/json".to_string()));
     }
 }

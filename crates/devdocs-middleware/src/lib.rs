@@ -13,9 +13,9 @@ pub use interceptor::{DevDocsLayer, HttpInterceptor};
 pub use processor::TrafficProcessor;
 
 use devdocs_core::{
-    Config, TrafficSample,
     analysis::{AnalysisConfig, TrafficAnalyzer},
     documentation::{DocumentationConfig, DocumentationGenerator},
+    Config, TrafficSample,
 };
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -49,8 +49,14 @@ impl DevDocsMiddleware {
 
         // Create documentation configuration
         let doc_config = DocumentationConfig {
-            title: config.api_title.clone().unwrap_or_else(|| "API Documentation".to_string()),
-            version: config.api_version.clone().unwrap_or_else(|| "1.0.0".to_string()),
+            title: config
+                .api_title
+                .clone()
+                .unwrap_or_else(|| "API Documentation".to_string()),
+            version: config
+                .api_version
+                .clone()
+                .unwrap_or_else(|| "1.0.0".to_string()),
             description: config.api_description.clone(),
             base_url: config.base_url.clone(),
             contact: None, // TODO: Add contact info to config
@@ -89,7 +95,10 @@ impl DevDocsMiddleware {
         Ok(())
     }
 
-    async fn process_sample(&mut self, sample: TrafficSample) -> Result<(), devdocs_core::DevDocsError> {
+    async fn process_sample(
+        &mut self,
+        sample: TrafficSample,
+    ) -> Result<(), devdocs_core::DevDocsError> {
         tracing::debug!(
             endpoint = %sample.endpoint_pattern,
             method = %sample.request.method,
@@ -103,17 +112,19 @@ impl DevDocsMiddleware {
         // Check if we should trigger analysis
         if self.traffic_processor.should_analyze() {
             tracing::info!("Triggering traffic analysis and documentation generation");
-            
+
             match self.traffic_processor.analyze_and_generate_docs().await {
                 Ok(documentation) => {
                     tracing::info!(
                         "Generated documentation with {} endpoints",
-                        documentation.openapi_spec.get("paths")
+                        documentation
+                            .openapi_spec
+                            .get("paths")
                             .and_then(|p| p.as_object())
                             .map(|o| o.len())
                             .unwrap_or(0)
                     );
-                    
+
                     // TODO: Save or serve the generated documentation
                     // This could be saved to a file, served via HTTP, or sent to a documentation service
                 }

@@ -102,7 +102,7 @@ impl RealtimeUpdater {
     /// Create a new real-time updater
     pub fn new(config: DocumentationConfig) -> Self {
         let (event_sender, _) = broadcast::channel(1000);
-        
+
         Self {
             config,
             event_sender,
@@ -113,18 +113,21 @@ impl RealtimeUpdater {
     }
 
     /// Add a new client connection
-    pub fn add_client(&mut self, subscriptions: Vec<String>) -> (Uuid, broadcast::Receiver<UpdateEvent>) {
+    pub fn add_client(
+        &mut self,
+        subscriptions: Vec<String>,
+    ) -> (Uuid, broadcast::Receiver<UpdateEvent>) {
         let client_id = Uuid::new_v4();
         let receiver = self.event_sender.subscribe();
-        
+
         let client = ClientConnection {
             id: client_id,
             subscriptions,
             connected_at: chrono::Utc::now(),
         };
-        
+
         self.clients.insert(client_id, client);
-        
+
         tracing::info!("New client connected: {}", client_id);
         (client_id, receiver)
     }
@@ -137,23 +140,30 @@ impl RealtimeUpdater {
     }
 
     /// Process endpoint updates and detect changes
-    pub async fn process_endpoint_update(&mut self, endpoint: ApiEndpoint) -> Result<(), DevDocsError> {
+    pub async fn process_endpoint_update(
+        &mut self,
+        endpoint: ApiEndpoint,
+    ) -> Result<(), DevDocsError> {
         let endpoint_key = format!("{}:{}", endpoint.method, endpoint.path_pattern);
-        
+
         if let Some(previous) = self.endpoint_history.get(&endpoint_key) {
             // Calculate changes
             let changes = EndpointChanges {
                 request_count_delta: endpoint.request_count as i64 - previous.request_count as i64,
-                avg_response_time_change: endpoint.avg_response_time_ms - previous.avg_response_time_ms,
+                avg_response_time_change: endpoint.avg_response_time_ms
+                    - previous.avg_response_time_ms,
                 success_rate_change: endpoint.success_rate() - previous.success_rate(),
-                new_status_codes: endpoint.status_codes.keys()
+                new_status_codes: endpoint
+                    .status_codes
+                    .keys()
                     .filter(|&code| !previous.status_codes.contains_key(code))
                     .copied()
                     .collect(),
             };
 
             // Check for breaking changes
-            self.detect_endpoint_breaking_changes(previous, &endpoint).await?;
+            self.detect_endpoint_breaking_changes(previous, &endpoint)
+                .await?;
 
             // Send update event
             let event = UpdateEvent::EndpointUpdated {
@@ -161,7 +171,7 @@ impl RealtimeUpdater {
                 changes,
                 timestamp: chrono::Utc::now(),
             };
-            
+
             self.send_event(event).await?;
         } else {
             // New endpoint discovered
@@ -169,7 +179,7 @@ impl RealtimeUpdater {
                 endpoint: endpoint.clone(),
                 timestamp: chrono::Utc::now(),
             };
-            
+
             self.send_event(event).await?;
         }
 
@@ -187,7 +197,7 @@ impl RealtimeUpdater {
         if let Some(previous_schema) = self.schema_history.get(&name) {
             // Analyze schema changes
             let changes = self.analyze_schema_changes(previous_schema, &schema);
-            
+
             // Check for breaking changes
             if !changes.breaking_changes.is_empty() {
                 let event = UpdateEvent::BreakingChange {
@@ -196,7 +206,7 @@ impl RealtimeUpdater {
                     affected_endpoints: self.find_endpoints_using_schema(&name),
                     timestamp: chrono::Utc::now(),
                 };
-                
+
                 self.send_event(event).await?;
             }
 
@@ -207,7 +217,7 @@ impl RealtimeUpdater {
                 changes,
                 timestamp: chrono::Utc::now(),
             };
-            
+
             self.send_event(event).await?;
         } else {
             // New schema discovered
@@ -216,7 +226,7 @@ impl RealtimeUpdater {
                 schema: schema.clone(),
                 timestamp: chrono::Utc::now(),
             };
-            
+
             self.send_event(event).await?;
         }
 
@@ -226,12 +236,15 @@ impl RealtimeUpdater {
     }
 
     /// Send documentation updated event
-    pub async fn notify_documentation_updated(&self, documentation_id: Uuid) -> Result<(), DevDocsError> {
+    pub async fn notify_documentation_updated(
+        &self,
+        documentation_id: Uuid,
+    ) -> Result<(), DevDocsError> {
         let event = UpdateEvent::DocumentationUpdated {
             documentation_id,
             timestamp: chrono::Utc::now(),
         };
-        
+
         self.send_event(event).await
     }
 
@@ -242,7 +255,7 @@ impl RealtimeUpdater {
         } else {
             tracing::debug!("Sent real-time update: {:?}", event);
         }
-        
+
         Ok(())
     }
 
@@ -264,7 +277,7 @@ impl RealtimeUpdater {
                 affected_endpoints: vec![format!("{}:{}", current.method, current.path_pattern)],
                 timestamp: chrono::Utc::now(),
             };
-            
+
             self.send_event(event).await?;
         }
 
@@ -277,10 +290,13 @@ impl RealtimeUpdater {
                         "New error status code {} detected for {} {}",
                         status_code, current.method, current.path_pattern
                     ),
-                    affected_endpoints: vec![format!("{}:{}", current.method, current.path_pattern)],
+                    affected_endpoints: vec![format!(
+                        "{}:{}",
+                        current.method, current.path_pattern
+                    )],
                     timestamp: chrono::Utc::now(),
                 };
-                
+
                 self.send_event(event).await?;
             }
         }
@@ -317,7 +333,9 @@ impl RealtimeUpdater {
             for field_name in prev_props.keys() {
                 if !curr_props.contains_key(field_name) {
                     changes.fields_removed.push(field_name.clone());
-                    changes.breaking_changes.push(format!("Field '{}' was removed", field_name));
+                    changes
+                        .breaking_changes
+                        .push(format!("Field '{}' was removed", field_name));
                 }
             }
 
@@ -326,7 +344,7 @@ impl RealtimeUpdater {
                 if let Some(prev_field) = prev_props.get(field_name) {
                     if prev_field != curr_field {
                         changes.fields_modified.push(field_name.clone());
-                        
+
                         // Check for breaking type changes
                         if let (Some(prev_type), Some(curr_type)) = (
                             prev_field.get("type").and_then(|t| t.as_str()),
@@ -351,10 +369,9 @@ impl RealtimeUpdater {
                 for required_field in curr_required {
                     if let Some(field_name) = required_field.as_str() {
                         if !prev_required.contains(required_field) {
-                            changes.breaking_changes.push(format!(
-                                "Field '{}' is now required",
-                                field_name
-                            ));
+                            changes
+                                .breaking_changes
+                                .push(format!("Field '{}' is now required", field_name));
                         }
                     }
                 }
@@ -369,11 +386,14 @@ impl RealtimeUpdater {
         // This is a simplified implementation
         // In practice, we'd need to analyze the OpenAPI spec or maintain
         // a mapping of schemas to endpoints
-        self.endpoint_history.keys()
+        self.endpoint_history
+            .keys()
             .filter(|endpoint_key| {
                 // Simple heuristic: if schema name contains part of endpoint path
                 let path_part = endpoint_key.split(':').nth(1).unwrap_or("");
-                schema_name.to_lowercase().contains(&path_part.replace('/', "").to_lowercase())
+                schema_name
+                    .to_lowercase()
+                    .contains(&path_part.replace('/', "").to_lowercase())
             })
             .cloned()
             .collect()
@@ -387,13 +407,13 @@ impl RealtimeUpdater {
     /// Get client statistics
     pub fn get_client_stats(&self) -> HashMap<String, usize> {
         let mut stats = HashMap::new();
-        
+
         for client in self.clients.values() {
             for subscription in &client.subscriptions {
                 *stats.entry(subscription.clone()).or_insert(0) += 1;
             }
         }
-        
+
         stats
     }
 
@@ -451,7 +471,7 @@ mod tests {
         });
 
         let changes = updater.analyze_schema_changes(&previous_schema, &current_schema);
-        
+
         assert_eq!(changes.fields_added, vec!["email"]);
         assert!(changes.fields_modified.contains(&"id".to_string()));
         assert!(!changes.breaking_changes.is_empty());

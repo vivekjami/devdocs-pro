@@ -8,7 +8,7 @@ use crate::errors::DevDocsError;
 use crate::models::ApiEndpoint;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -99,17 +99,19 @@ impl AiProcessor {
     /// Create a new AI processor
     pub fn new(config: &AnalysisConfig) -> Result<Self, DevDocsError> {
         let gemini_config = GeminiConfig::default();
-        
+
         if gemini_config.api_key.is_empty() {
             return Err(DevDocsError::Configuration(
-                "GEMINI_API_KEY environment variable is required".to_string()
+                "GEMINI_API_KEY environment variable is required".to_string(),
             ));
         }
 
         let client = Client::builder()
             .timeout(gemini_config.timeout)
             .build()
-            .map_err(|e| DevDocsError::NetworkError(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| {
+                DevDocsError::NetworkError(format!("Failed to create HTTP client: {}", e))
+            })?;
 
         Ok(Self {
             config: config.clone(),
@@ -130,10 +132,10 @@ impl AiProcessor {
 
         // Create context-rich prompt for Gemini
         let prompt = self.build_documentation_prompt(endpoints, schemas);
-        
+
         // Call Gemini API
         let response = self.call_gemini_api(&prompt).await?;
-        
+
         Ok(response)
     }
 
@@ -144,15 +146,18 @@ impl AiProcessor {
         schemas: &HashMap<String, Value>,
     ) -> String {
         let mut prompt = String::new();
-        
+
         prompt.push_str("You are an expert API documentation writer. Generate comprehensive, professional API documentation based on the following analyzed traffic data.\n\n");
-        
+
         // Add context about the API
         prompt.push_str("## API Analysis Context\n");
-        prompt.push_str(&format!("- Total endpoints analyzed: {}\n", endpoints.len()));
+        prompt.push_str(&format!(
+            "- Total endpoints analyzed: {}\n",
+            endpoints.len()
+        ));
         prompt.push_str(&format!("- Schemas inferred: {}\n", schemas.len()));
         prompt.push_str("\n");
-        
+
         // Add endpoint information
         if !endpoints.is_empty() {
             prompt.push_str("## Detected Endpoints\n");
@@ -169,7 +174,7 @@ impl AiProcessor {
             }
             prompt.push_str("\n");
         }
-        
+
         // Add schema information
         if !schemas.is_empty() {
             prompt.push_str("## Inferred Schemas\n");
@@ -180,25 +185,31 @@ impl AiProcessor {
                 prompt.push_str("\n```\n\n");
             }
         }
-        
+
         // Add generation instructions
         prompt.push_str("## Documentation Requirements\n");
         prompt.push_str("Generate professional API documentation that includes:\n");
-        prompt.push_str("1. **API Overview**: Brief description of the API's purpose and capabilities\n");
-        prompt.push_str("2. **Authentication**: Inferred authentication methods from traffic patterns\n");
+        prompt.push_str(
+            "1. **API Overview**: Brief description of the API's purpose and capabilities\n",
+        );
+        prompt.push_str(
+            "2. **Authentication**: Inferred authentication methods from traffic patterns\n",
+        );
         prompt.push_str("3. **Endpoints**: Detailed documentation for each endpoint including:\n");
         prompt.push_str("   - Purpose and functionality\n");
         prompt.push_str("   - Request parameters and body schema\n");
         prompt.push_str("   - Response schema and status codes\n");
         prompt.push_str("   - Example requests and responses (realistic data)\n");
         prompt.push_str("   - Error handling and common failure scenarios\n");
-        prompt.push_str("4. **Data Models**: Documentation for all schemas with field descriptions\n");
+        prompt.push_str(
+            "4. **Data Models**: Documentation for all schemas with field descriptions\n",
+        );
         prompt.push_str("5. **Usage Examples**: Practical examples showing common workflows\n");
         prompt.push_str("6. **Best Practices**: Recommendations for API usage\n\n");
-        
+
         prompt.push_str("Format the documentation in clean Markdown with proper headings, code blocks, and tables where appropriate. ");
         prompt.push_str("Make it comprehensive but easy to understand for developers.\n");
-        
+
         prompt
     }
 
@@ -206,9 +217,7 @@ impl AiProcessor {
     async fn call_gemini_api(&self, prompt: &str) -> Result<String, DevDocsError> {
         let url = format!(
             "{}/{}:generateContent?key={}",
-            self.gemini_config.endpoint,
-            self.gemini_config.model,
-            self.gemini_config.api_key
+            self.gemini_config.endpoint, self.gemini_config.model, self.gemini_config.api_key
         );
 
         let request = GeminiRequest {
@@ -240,21 +249,20 @@ impl AiProcessor {
             )));
         }
 
-        let gemini_response: GeminiResponse = response
-            .json()
-            .await
-            .map_err(|e| DevDocsError::NetworkError(format!("Failed to parse Gemini response: {}", e)))?;
+        let gemini_response: GeminiResponse = response.json().await.map_err(|e| {
+            DevDocsError::NetworkError(format!("Failed to parse Gemini response: {}", e))
+        })?;
 
         if gemini_response.candidates.is_empty() {
             return Err(DevDocsError::NetworkError(
-                "Gemini API returned no candidates".to_string()
+                "Gemini API returned no candidates".to_string(),
             ));
         }
 
         let candidate = &gemini_response.candidates[0];
         if candidate.content.parts.is_empty() {
             return Err(DevDocsError::NetworkError(
-                "Gemini API returned no content parts".to_string()
+                "Gemini API returned no content parts".to_string(),
             ));
         }
 
@@ -269,25 +277,34 @@ impl AiProcessor {
         response_schema: Option<&Value>,
     ) -> Result<String, DevDocsError> {
         let mut prompt = String::new();
-        
+
         prompt.push_str("Generate detailed documentation for this API endpoint:\n\n");
-        prompt.push_str(&format!("**Endpoint**: {} {}\n", endpoint.method, endpoint.path_pattern));
+        prompt.push_str(&format!(
+            "**Endpoint**: {} {}\n",
+            endpoint.method, endpoint.path_pattern
+        ));
         prompt.push_str(&format!("**Request Count**: {}\n", endpoint.request_count));
-        prompt.push_str(&format!("**Average Response Time**: {:.1}ms\n", endpoint.avg_response_time_ms));
-        prompt.push_str(&format!("**Success Rate**: {:.1}%\n\n", endpoint.success_rate()));
-        
+        prompt.push_str(&format!(
+            "**Average Response Time**: {:.1}ms\n",
+            endpoint.avg_response_time_ms
+        ));
+        prompt.push_str(&format!(
+            "**Success Rate**: {:.1}%\n\n",
+            endpoint.success_rate()
+        ));
+
         if let Some(schema) = request_schema {
             prompt.push_str("**Request Schema**:\n```json\n");
             prompt.push_str(&serde_json::to_string_pretty(schema).unwrap_or_default());
             prompt.push_str("\n```\n\n");
         }
-        
+
         if let Some(schema) = response_schema {
             prompt.push_str("**Response Schema**:\n```json\n");
             prompt.push_str(&serde_json::to_string_pretty(schema).unwrap_or_default());
             prompt.push_str("\n```\n\n");
         }
-        
+
         prompt.push_str("Please provide:\n");
         prompt.push_str("1. A clear description of what this endpoint does\n");
         prompt.push_str("2. Parameter descriptions (path, query, body)\n");
@@ -295,7 +312,7 @@ impl AiProcessor {
         prompt.push_str("4. Example request and response\n");
         prompt.push_str("5. Common error scenarios\n");
         prompt.push_str("6. Usage recommendations\n");
-        
+
         self.call_gemini_api(&prompt).await
     }
 
@@ -306,37 +323,45 @@ impl AiProcessor {
         schemas: &HashMap<String, Value>,
     ) -> Result<Value, DevDocsError> {
         let mut prompt = String::new();
-        
+
         prompt.push_str("Generate a complete OpenAPI 3.0 specification based on the following API analysis:\n\n");
-        
+
         // Add endpoint information
         for endpoint in endpoints {
             prompt.push_str(&format!(
                 "- {} {}: {} requests, {:.1}ms avg response time\n",
-                endpoint.method, endpoint.path_pattern, endpoint.request_count, endpoint.avg_response_time_ms
+                endpoint.method,
+                endpoint.path_pattern,
+                endpoint.request_count,
+                endpoint.avg_response_time_ms
             ));
         }
-        
+
         // Add schemas
         if !schemas.is_empty() {
             prompt.push_str("\nSchemas:\n");
             for (name, schema) in schemas {
-                prompt.push_str(&format!("- {}: {}\n", name, serde_json::to_string(schema).unwrap_or_default()));
+                prompt.push_str(&format!(
+                    "- {}: {}\n",
+                    name,
+                    serde_json::to_string(schema).unwrap_or_default()
+                ));
             }
         }
-        
+
         prompt.push_str("\nGenerate a valid OpenAPI 3.0 specification in JSON format. Include:\n");
         prompt.push_str("- info section with title, version, description\n");
         prompt.push_str("- paths for all endpoints with parameters, request/response schemas\n");
         prompt.push_str("- components section with reusable schemas\n");
         prompt.push_str("- appropriate HTTP status codes\n");
         prompt.push_str("- realistic examples\n");
-        
+
         let response = self.call_gemini_api(&prompt).await?;
-        
+
         // Try to parse the response as JSON
-        serde_json::from_str(&response)
-            .map_err(|e| DevDocsError::InvalidRequest(format!("Failed to parse OpenAPI spec: {}", e)))
+        serde_json::from_str(&response).map_err(|e| {
+            DevDocsError::InvalidRequest(format!("Failed to parse OpenAPI spec: {}", e))
+        })
     }
 
     /// Update configuration
@@ -362,13 +387,13 @@ mod tests {
     fn test_gemini_config_default() {
         // Set a test API key for the test
         std::env::set_var("GEMINI_API_KEY", "test_key");
-        
+
         let config = GeminiConfig::default();
         assert_eq!(config.api_key, "test_key");
         assert_eq!(config.model, "gemini-pro");
         assert_eq!(config.temperature, 0.3);
         assert_eq!(config.max_tokens, 4096);
-        
+
         // Clean up
         std::env::remove_var("GEMINI_API_KEY");
     }
@@ -377,11 +402,11 @@ mod tests {
     fn test_ai_processor_creation_without_api_key() {
         // Ensure no API key is set
         std::env::remove_var("GEMINI_API_KEY");
-        
+
         let config = AnalysisConfig::default();
         let processor = AiProcessor::new(&config);
         assert!(processor.is_err());
-        
+
         if let Err(DevDocsError::Configuration(msg)) = processor {
             assert!(msg.contains("GEMINI_API_KEY"));
         } else {
@@ -392,43 +417,47 @@ mod tests {
     #[test]
     fn test_ai_processor_creation_with_api_key() {
         std::env::set_var("GEMINI_API_KEY", "test_key");
-        
+
         let config = AnalysisConfig::default();
         let processor = AiProcessor::new(&config);
         assert!(processor.is_ok());
-        
+
         std::env::remove_var("GEMINI_API_KEY");
     }
 
     #[test]
     fn test_documentation_prompt_building() {
         std::env::set_var("GEMINI_API_KEY", "test_key");
-        
+
         let config = AnalysisConfig::default();
         let processor = AiProcessor::new(&config).unwrap();
-        
-        let endpoints = vec![
-            ApiEndpoint::new("/users/{id}".to_string(), "GET".to_string()),
-        ];
-        
+
+        let endpoints = vec![ApiEndpoint::new(
+            "/users/{id}".to_string(),
+            "GET".to_string(),
+        )];
+
         let mut schemas = HashMap::new();
-        schemas.insert("User".to_string(), serde_json::json!({
-            "type": "object",
-            "properties": {
-                "id": {"type": "integer"},
-                "name": {"type": "string"}
-            }
-        }));
-        
+        schemas.insert(
+            "User".to_string(),
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"}
+                }
+            }),
+        );
+
         let prompt = processor.build_documentation_prompt(&endpoints, &schemas);
-        
+
         assert!(prompt.contains("API Analysis Context"));
         assert!(prompt.contains("Total endpoints analyzed: 1"));
         assert!(prompt.contains("Schemas inferred: 1"));
         assert!(prompt.contains("GET /users/{id}"));
         assert!(prompt.contains("User"));
         assert!(prompt.contains("Documentation Requirements"));
-        
+
         std::env::remove_var("GEMINI_API_KEY");
     }
 
@@ -445,7 +474,7 @@ mod tests {
                 max_output_tokens: 1000,
             },
         };
-        
+
         let json = serde_json::to_string(&request).unwrap();
         assert!(json.contains("Test prompt"));
         assert!(json.contains("generationConfig"));
@@ -463,45 +492,48 @@ mod tests {
                 }
             }]
         }"#;
-        
+
         let response: GeminiResponse = serde_json::from_str(json).unwrap();
         assert_eq!(response.candidates.len(), 1);
         assert_eq!(response.candidates[0].content.parts.len(), 1);
-        assert_eq!(response.candidates[0].content.parts[0].text, "Generated documentation");
+        assert_eq!(
+            response.candidates[0].content.parts[0].text,
+            "Generated documentation"
+        );
     }
 
     #[test]
     fn test_config_update() {
         std::env::set_var("GEMINI_API_KEY", "test_key");
-        
+
         let config = AnalysisConfig::default();
         let mut processor = AiProcessor::new(&config).unwrap();
-        
+
         let mut new_config = config.clone();
         new_config.ai_documentation_enabled = false;
-        
+
         let result = processor.update_config(&new_config);
         assert!(result.is_ok());
         assert!(!processor.config.ai_documentation_enabled);
-        
+
         std::env::remove_var("GEMINI_API_KEY");
     }
 
     #[tokio::test]
     async fn test_disabled_ai_documentation() {
         std::env::set_var("GEMINI_API_KEY", "test_key");
-        
+
         let mut config = AnalysisConfig::default();
         config.ai_documentation_enabled = false;
-        
+
         let processor = AiProcessor::new(&config).unwrap();
         let endpoints = vec![];
         let schemas = HashMap::new();
-        
+
         let result = processor.generate_documentation(&endpoints, &schemas).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "AI documentation generation is disabled");
-        
+
         std::env::remove_var("GEMINI_API_KEY");
     }
 }

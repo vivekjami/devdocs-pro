@@ -8,24 +8,22 @@
 //! 5. Serve interactive documentation
 
 use devdocs_core::{
-    Config,
     analysis::{AnalysisConfig, TrafficAnalyzer},
+    body_capture::{BodyStorage, CapturedBody, CompressionType, ContentPriority},
     documentation::{DocumentationConfig, DocumentationGenerator},
     models::{HttpRequest, HttpResponse, TrafficSample},
-    body_capture::{CapturedBody, BodyStorage, CompressionType, ContentPriority},
+    Config,
 };
-use tracing_subscriber;
 use devdocs_middleware::TrafficProcessor;
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::time::{sleep, Duration};
+use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
-    tracing_subscriber::fmt()
-
-        .init();
+    tracing_subscriber::fmt().init();
 
     println!("🚀 DevDocs Pro - Complete Example");
     println!("==================================");
@@ -53,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn create_sample_config() -> Config {
     Config {
         api_key: "demo-api-key".to_string(),
-        sampling_rate: 1.0, // Capture 100% of traffic for demo
+        sampling_rate: 1.0,                    // Capture 100% of traffic for demo
         max_body_size: Some(10 * 1024 * 1024), // 10MB
         enable_ai_analysis: true,
         gemini_api_key: std::env::var("GEMINI_API_KEY").ok(),
@@ -91,16 +89,20 @@ async fn demonstrate_traffic_analysis() -> Result<(), Box<dyn std::error::Error>
 
     // Analyze traffic
     let analysis_result = analyzer.analyze_traffic(samples).await?;
-    
+
     println!("📈 Analysis Results:");
-    println!("  - Endpoints discovered: {}", analysis_result.endpoints.len());
+    println!(
+        "  - Endpoints discovered: {}",
+        analysis_result.endpoints.len()
+    );
     println!("  - Schemas inferred: {}", analysis_result.schemas.len());
     println!("  - Confidence score: {:.2}", analysis_result.confidence);
     println!("  - Samples analyzed: {}", analysis_result.samples_analyzed);
 
     // Display endpoint details
     for endpoint in &analysis_result.endpoints {
-        println!("  📍 {} {} - {} requests, {:.1}ms avg, {:.1}% success",
+        println!(
+            "  📍 {} {} - {} requests, {:.1}ms avg, {:.1}% success",
             endpoint.method,
             endpoint.path_pattern,
             endpoint.request_count,
@@ -111,9 +113,11 @@ async fn demonstrate_traffic_analysis() -> Result<(), Box<dyn std::error::Error>
 
     // Display schema details
     for (name, schema) in &analysis_result.schemas {
-        println!("  📋 Schema '{}': {} properties",
+        println!(
+            "  📋 Schema '{}': {} properties",
             name,
-            schema.get("properties")
+            schema
+                .get("properties")
                 .and_then(|p| p.as_object())
                 .map(|o| o.len())
                 .unwrap_or(0)
@@ -121,7 +125,10 @@ async fn demonstrate_traffic_analysis() -> Result<(), Box<dyn std::error::Error>
     }
 
     if let Some(ai_docs) = &analysis_result.documentation {
-        println!("  🤖 AI Documentation generated ({} characters)", ai_docs.len());
+        println!(
+            "  🤖 AI Documentation generated ({} characters)",
+            ai_docs.len()
+        );
     }
 
     Ok(())
@@ -136,7 +143,9 @@ async fn demonstrate_documentation_generation() -> Result<(), Box<dyn std::error
     let doc_config = DocumentationConfig {
         title: "Demo API Documentation".to_string(),
         version: "1.0.0".to_string(),
-        description: Some("Comprehensive API documentation generated from traffic analysis".to_string()),
+        description: Some(
+            "Comprehensive API documentation generated from traffic analysis".to_string(),
+        ),
         base_url: Some("https://api.demo.com".to_string()),
         contact: Some(devdocs_core::documentation::ContactInfo {
             name: Some("API Team".to_string()),
@@ -161,26 +170,40 @@ async fn demonstrate_documentation_generation() -> Result<(), Box<dyn std::error
     let analysis_result = create_sample_analysis_result();
 
     // Generate documentation
-    let documentation = doc_generator.generate_documentation(&analysis_result).await?;
+    let documentation = doc_generator
+        .generate_documentation(&analysis_result)
+        .await?;
     println!("✅ Documentation generated");
 
     // Display documentation info
     println!("📄 Generated Documentation:");
-    println!("  - OpenAPI spec: {} paths",
-        documentation.openapi_spec.get("paths")
+    println!(
+        "  - OpenAPI spec: {} paths",
+        documentation
+            .openapi_spec
+            .get("paths")
             .and_then(|p| p.as_object())
             .map(|o| o.len())
             .unwrap_or(0)
     );
-    println!("  - HTML content: {} characters", documentation.html_content.len());
-    println!("  - Markdown content: {} characters", documentation.markdown_content.len());
+    println!(
+        "  - HTML content: {} characters",
+        documentation.html_content.len()
+    );
+    println!(
+        "  - Markdown content: {} characters",
+        documentation.markdown_content.len()
+    );
 
     // Save documentation to files
-    tokio::fs::write("demo_openapi.json", 
-        serde_json::to_string_pretty(&documentation.openapi_spec)?).await?;
+    tokio::fs::write(
+        "demo_openapi.json",
+        serde_json::to_string_pretty(&documentation.openapi_spec)?,
+    )
+    .await?;
     tokio::fs::write("demo_documentation.html", &documentation.html_content).await?;
     tokio::fs::write("demo_documentation.md", &documentation.markdown_content).await?;
-    
+
     println!("💾 Documentation saved to files:");
     println!("  - demo_openapi.json");
     println!("  - demo_documentation.html");
@@ -205,8 +228,14 @@ async fn demonstrate_middleware_workflow(config: Config) -> Result<(), Box<dyn s
     };
 
     let doc_config = DocumentationConfig {
-        title: config.api_title.clone().unwrap_or_else(|| "API Documentation".to_string()),
-        version: config.api_version.clone().unwrap_or_else(|| "1.0.0".to_string()),
+        title: config
+            .api_title
+            .clone()
+            .unwrap_or_else(|| "API Documentation".to_string()),
+        version: config
+            .api_version
+            .clone()
+            .unwrap_or_else(|| "1.0.0".to_string()),
         description: config.api_description.clone(),
         base_url: config.base_url.clone(),
         contact: None,
@@ -222,14 +251,15 @@ async fn demonstrate_middleware_workflow(config: Config) -> Result<(), Box<dyn s
 
     // Simulate real-time traffic processing
     println!("🔄 Simulating real-time traffic...");
-    
+
     let samples = generate_sample_traffic().await;
     for (i, sample) in samples.into_iter().enumerate() {
         processor.add_sample(sample).await?;
-        
+
         if i % 2 == 0 {
             let stats = processor.get_sample_stats().await;
-            println!("  📊 Stats: {} samples, {} endpoints, {:.1}ms avg response time",
+            println!(
+                "  📊 Stats: {} samples, {} endpoints, {:.1}ms avg response time",
                 stats.total_samples,
                 stats.endpoint_counts.len(),
                 stats.avg_response_time
@@ -248,13 +278,19 @@ async fn demonstrate_middleware_workflow(config: Config) -> Result<(), Box<dyn s
     println!("📊 Final Results:");
     println!("  - Total samples processed: {}", processor.sample_count());
     println!("  - Unique endpoints: {}", processor.endpoint_count());
-    println!("  - Documentation generated at: {}", documentation.generated_at);
+    println!(
+        "  - Documentation generated at: {}",
+        documentation.generated_at
+    );
 
     // Save final documentation
-    tokio::fs::write("workflow_openapi.json", 
-        serde_json::to_string_pretty(&documentation.openapi_spec)?).await?;
+    tokio::fs::write(
+        "workflow_openapi.json",
+        serde_json::to_string_pretty(&documentation.openapi_spec)?,
+    )
+    .await?;
     tokio::fs::write("workflow_documentation.html", &documentation.html_content).await?;
-    
+
     println!("💾 Final documentation saved:");
     println!("  - workflow_openapi.json");
     println!("  - workflow_documentation.html");
@@ -271,7 +307,8 @@ async fn generate_sample_traffic() -> Vec<TrafficSample> {
         "GET".to_string(),
         "/users".to_string(),
         "corr-001".to_string(),
-    ).with_query_params({
+    )
+    .with_query_params({
         let mut params = HashMap::new();
         params.insert("page".to_string(), "1".to_string());
         params.insert("limit".to_string(), "10".to_string());
@@ -360,7 +397,8 @@ async fn generate_sample_traffic() -> Vec<TrafficSample> {
         "POST".to_string(),
         "/users".to_string(),
         "corr-003".to_string(),
-    ).with_body(captured_request_body3);
+    )
+    .with_body(captured_request_body3);
 
     let response_body3 = json!({
         "id": 456,
@@ -406,7 +444,8 @@ async fn generate_sample_traffic() -> Vec<TrafficSample> {
         "PUT".to_string(),
         "/users/123".to_string(),
         "corr-004".to_string(),
-    ).with_body(captured_request_body4);
+    )
+    .with_body(captured_request_body4);
 
     let response_body4 = json!({
         "id": 123,
@@ -437,8 +476,7 @@ async fn generate_sample_traffic() -> Vec<TrafficSample> {
         "corr-005".to_string(),
     );
 
-    let response5 = HttpResponse::new(request5.id, 204)
-        .with_processing_time(90);
+    let response5 = HttpResponse::new(request5.id, 204).with_processing_time(90);
 
     samples.push(TrafficSample::new(request5, "/users/{id}".to_string()).with_response(response5));
 
@@ -451,7 +489,7 @@ fn create_sample_analysis_result() -> devdocs_core::analysis::AnalysisResult {
     use uuid::Uuid;
 
     let mut endpoints = Vec::new();
-    
+
     // Create sample endpoints
     let mut endpoint1 = ApiEndpoint::new("/users".to_string(), "GET".to_string());
     endpoint1.increment_request(150.0, 200);
@@ -470,41 +508,50 @@ fn create_sample_analysis_result() -> devdocs_core::analysis::AnalysisResult {
 
     // Create sample schemas
     let mut schemas = HashMap::new();
-    schemas.insert("users_response".to_string(), json!({
-        "type": "object",
-        "properties": {
-            "users": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/User"
+    schemas.insert(
+        "users_response".to_string(),
+        json!({
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/components/schemas/User"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/components/schemas/Pagination"
                 }
-            },
-            "pagination": {
-                "$ref": "#/components/schemas/Pagination"
             }
-        }
-    }));
+        }),
+    );
 
-    schemas.insert("User".to_string(), json!({
-        "type": "object",
-        "required": ["id", "name", "email"],
-        "properties": {
-            "id": {"type": "integer"},
-            "name": {"type": "string"},
-            "email": {"type": "string", "format": "email"},
-            "active": {"type": "boolean"},
-            "created_at": {"type": "string", "format": "date-time"},
-            "profile": {
-                "$ref": "#/components/schemas/UserProfile"
+    schemas.insert(
+        "User".to_string(),
+        json!({
+            "type": "object",
+            "required": ["id", "name", "email"],
+            "properties": {
+                "id": {"type": "integer"},
+                "name": {"type": "string"},
+                "email": {"type": "string", "format": "email"},
+                "active": {"type": "boolean"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "profile": {
+                    "$ref": "#/components/schemas/UserProfile"
+                }
             }
-        }
-    }));
+        }),
+    );
 
     devdocs_core::analysis::AnalysisResult {
         id: Uuid::new_v4(),
         endpoints,
         schemas,
-        documentation: Some("# Demo API\n\nThis is a demonstration API showing user management capabilities.".to_string()),
+        documentation: Some(
+            "# Demo API\n\nThis is a demonstration API showing user management capabilities."
+                .to_string(),
+        ),
         confidence: 0.95,
         samples_analyzed: 5,
         timestamp: chrono::Utc::now(),

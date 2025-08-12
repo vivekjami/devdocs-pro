@@ -60,16 +60,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "POST".to_string(),
         "/test".to_string(),
         "corr-123".to_string(),
-    ).with_body(captured_body.clone());
-    
+    )
+    .with_body(captured_body.clone());
+
     let sample = devdocs_core::models::TrafficSample::new(request, "/test".to_string());
-    
+
     match inference.infer_schemas(&[sample]).await {
         Ok(schemas) => {
             println!("   ✅ Schema inference successful!");
             println!("   📋 Generated {} schemas", schemas.len());
             for (name, schema) in &schemas {
-                println!("   🔍 Schema '{}': {}", name, serde_json::to_string_pretty(schema).unwrap_or_default());
+                println!(
+                    "   🔍 Schema '{}': {}",
+                    name,
+                    serde_json::to_string_pretty(schema).unwrap_or_default()
+                );
             }
         }
         Err(e) => {

@@ -51,7 +51,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Security configuration for the entire system
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SecurityConfig {
     /// Encryption settings
     pub encryption: EncryptionConfig,
@@ -67,18 +67,7 @@ pub struct SecurityConfig {
     pub compliance: ComplianceConfig,
 }
 
-impl Default for SecurityConfig {
-    fn default() -> Self {
-        Self {
-            encryption: EncryptionConfig::default(),
-            pii_protection: PiiProtectionConfig::default(),
-            auth: AuthConfig::default(),
-            audit: AuditConfig::default(),
-            rate_limiting: RateLimitingConfig::default(),
-            compliance: ComplianceConfig::default(),
-        }
-    }
-}
+
 
 /// Security context for request processing
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -193,6 +182,12 @@ pub enum Severity {
     Critical,
 }
 
+impl Default for SecurityValidationResult {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SecurityValidationResult {
     pub fn new() -> Self {
         Self {
@@ -270,7 +265,7 @@ impl SecurityManager {
             result.add_violation(SecurityViolation {
                 violation_type: ViolationType::RateLimitExceeded,
                 severity: Severity::High,
-                description: format!("Rate limit exceeded: {}", e),
+                description: format!("Rate limit exceeded: {e}"),
                 field_path: None,
                 detected_at: chrono::Utc::now(),
             });
@@ -362,8 +357,7 @@ impl SecurityManager {
         for permission in required_permissions {
             if !context.has_permission(permission) {
                 return Err(DevDocsError::Unauthorized(format!(
-                    "Missing required permission: {}",
-                    permission
+                    "Missing required permission: {permission}"
                 )));
             }
         }

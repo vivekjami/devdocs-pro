@@ -43,7 +43,7 @@ impl TrafficAnalyzer {
                 endpoint: endpoint.clone(),
                 method: method.clone(),
                 documentation: AIDocumentation::fallback(&endpoint, &method),
-                request_schema: None, // Would be populated by schema inference
+                request_schema: None,  // Would be populated by schema inference
                 response_schema: None, // Would be populated by schema inference
                 sample_count: endpoint_samples.len(),
                 traffic_patterns,
@@ -232,7 +232,7 @@ mod tests {
     async fn test_empty_samples_analysis() {
         let config = AnalysisConfig::default();
         let mut analyzer = TrafficAnalyzer::new(config).unwrap();
-        
+
         let result = analyzer.analyze_endpoint_samples(&[]).await;
         assert!(result.is_err());
     }
@@ -252,7 +252,11 @@ mod tests {
                 "/test".to_string(),
             ),
             TrafficSample::new(
-                HttpRequest::new("POST".to_string(), "/test".to_string(), "corr-3".to_string()),
+                HttpRequest::new(
+                    "POST".to_string(),
+                    "/test".to_string(),
+                    "corr-3".to_string(),
+                ),
                 "/test".to_string(),
             ),
         ];
@@ -270,15 +274,13 @@ mod tests {
             TrafficSample::new(
                 HttpRequest::new("GET".to_string(), "/test".to_string(), "corr-1".to_string()),
                 "/test".to_string(),
-            ).with_response(
-                HttpResponse::new(uuid::Uuid::new_v4(), 200).with_processing_time(100)
-            ),
+            )
+            .with_response(HttpResponse::new(uuid::Uuid::new_v4(), 200).with_processing_time(100)),
             TrafficSample::new(
                 HttpRequest::new("GET".to_string(), "/test".to_string(), "corr-2".to_string()),
                 "/test".to_string(),
-            ).with_response(
-                HttpResponse::new(uuid::Uuid::new_v4(), 404).with_processing_time(50)
-            ),
+            )
+            .with_response(HttpResponse::new(uuid::Uuid::new_v4(), 404).with_processing_time(50)),
         ];
 
         let patterns = analyzer.analyze_traffic_patterns(&samples);
