@@ -1,0 +1,315 @@
+{
+  "components": {
+    "schemas": {
+      "Error": {
+        "properties": {
+          "details": {
+            "description": "Additional error details",
+            "type": "object"
+          },
+          "error": {
+            "description": "Error code",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "type": "object"
+      },
+      "_users_id_request": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "_users_id_response": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "object"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "_users_request": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "_users_response": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pagination": {
+            "type": "object"
+          },
+          "users": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "A demonstration API for DevDocs Pro",
+    "title": "Demo API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/users": {
+      "get": {
+        "description": "GET /users - 1 requests processed, 150.0ms average response time, 100.0% success rate",
+        "operationId": "get_users",
+        "parameters": [
+          {
+            "description": "Page number for pagination",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_users_response"
+                }
+              }
+            },
+            "description": "OK - Request successful"
+          }
+        },
+        "summary": "List resources",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "description": "POST /users - 1 requests processed, 200.0ms average response time, 100.0% success rate",
+        "operationId": "post_users",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_users_request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_users_response"
+                }
+              }
+            },
+            "description": "Created - Resource created successfully"
+          }
+        },
+        "summary": "Create a new resource",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "delete": {
+        "description": "DELETE /users/{id} - 1 requests processed, 90.0ms average response time, 100.0% success rate",
+        "operationId": "delete_users",
+        "parameters": [
+          {
+            "description": "The id identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_users_id_response"
+                }
+              }
+            },
+            "description": "No Content - Request successful, no content returned"
+          }
+        },
+        "summary": "Delete a resource",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "description": "GET /users/{id} - 1 requests processed, 75.0ms average response time, 100.0% success rate",
+        "operationId": "get_users",
+        "parameters": [
+          {
+            "description": "The id identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_users_id_response"
+                }
+              }
+            },
+            "description": "OK - Request successful"
+          }
+        },
+        "summary": "Get a specific resource",
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "description": "PUT /users/{id} - 1 requests processed, 120.0ms average response time, 100.0% success rate",
+        "operationId": "put_users",
+        "parameters": [
+          {
+            "description": "The id identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_users_id_request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_users_id_response"
+                }
+              }
+            },
+            "description": "OK - Request successful"
+          }
+        },
+        "summary": "Update a resource",
+        "tags": [
+          "users"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "API Server",
+      "url": "https://api.demo.com"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Operations related to users",
+      "name": "users"
+    }
+  ]
+}

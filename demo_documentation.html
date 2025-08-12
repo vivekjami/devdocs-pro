@@ -1,0 +1,1176 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Demo API Documentation</title><style>/* DevDocs Pro Documentation Styles */
+
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #64748b;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  --background-color: #ffffff;
+  --surface-color: #f8fafc;
+  --border-color: #e2e8f0;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --code-background: #f1f5f9;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background-color);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+  color: white;
+  padding: 2rem 0;
+  box-shadow: var(--shadow-md);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.header .description {
+  font-size: 1.125rem;
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+}
+
+.header .version {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.logo {
+  height: 3rem;
+  margin-right: 1rem;
+  vertical-align: middle;
+}
+
+/* Navigation */
+.navigation {
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2rem;
+}
+
+.nav-menu li {
+  margin: 0;
+}
+
+.nav-menu a {
+  display: block;
+  padding: 1rem 0;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.nav-menu a:hover,
+.nav-menu a.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Main Content */
+.main-content {
+  padding: 2rem 0;
+}
+
+section {
+  margin-bottom: 3rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+h4 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* AI Documentation */
+.ai-documentation {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid #bae6fd;
+}
+
+.ai-content {
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+/* API Overview */
+.api-overview {
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.api-description {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.server-list {
+  list-style: none;
+  padding: 0;
+}
+
+.server-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.server-list li:last-child {
+  border-bottom: none;
+}
+
+/* Endpoints */
+.path-item {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.path-title {
+  background: var(--surface-color);
+  padding: 1rem 1.5rem;
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.operation {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.operation:last-child {
+  border-bottom: none;
+}
+
+.operation-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.method {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.method-get { background: #dcfce7; color: #166534; }
+.method-post { background: #dbeafe; color: #1e40af; }
+.method-put { background: #fef3c7; color: #92400e; }
+.method-patch { background: #f3e8ff; color: #7c2d12; }
+.method-delete { background: #fee2e2; color: #dc2626; }
+
+.summary {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.description {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* Parameters Table */
+.parameters-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background: white;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.parameters-table th,
+.parameters-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.parameters-table th {
+  background: var(--surface-color);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.parameters-table code {
+  background: var(--code-background);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+/* Code Blocks */
+pre {
+  background: var(--code-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.schema {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Try It Section */
+.try-it-section {
+  background: var(--surface-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.try-it-form {
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.try-it-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.try-it-button:hover {
+  background: #1d4ed8;
+}
+
+.try-it-button:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.response-display {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.response-content {
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Response Items */
+.response-item {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.response-item h5 {
+  margin-top: 0;
+  color: var(--primary-color);
+}
+
+.response-item h6 {
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Schemas Section */
+.schema-item {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.schema-item h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Footer */
+.footer {
+  background: var(--surface-color);
+  border-top: 1px solid var(--border-color);
+  padding: 2rem 0;
+  margin-top: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .nav-menu {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .nav-menu a {
+    padding: 0.75rem 0;
+  }
+  
+  .operation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .parameters-table {
+    font-size: 0.875rem;
+  }
+  
+  .parameters-table th,
+  .parameters-table td {
+    padding: 0.5rem;
+  }
+  
+  pre {
+    font-size: 0.75rem;
+  }
+}
+
+/* Loading States */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Status Indicators */
+.status-success { color: var(--success-color); }
+.status-warning { color: var(--warning-color); }
+.status-error { color: var(--error-color); }
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-muted { color: var(--text-muted); }
+.text-small { font-size: 0.875rem; }
+.font-mono { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; }
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #0f172a;
+    --surface-color: #1e293b;
+    --border-color: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    --code-background: #1e293b;
+  }
+  
+  .path-item,
+  .schema-item,
+  .response-item,
+  .try-it-section .response-display {
+    background: var(--surface-color);
+  }
+  
+  .form-group input,
+  .form-group textarea {
+    background: var(--surface-color);
+    color: var(--text-primary);
+  }
+}</style></head><body><header class="header"><div class="container"><img src="https://demo.com/logo.png" alt="Logo" class="logo"><h1>Demo API Documentation</h1><p class="description">Comprehensive API documentation generated from traffic analysis</p><span class="version">v1.0.0</span></div></header><nav class="navigation"><div class="container"><ul class="nav-menu"><li><a href="#overview">Overview</a></li><li><a href="#endpoints">Endpoints</a></li><li><a href="#schemas">Schemas</a></li><li><a href="#try-it">Try It</a></li></ul></div></nav><main class="main-content"><section id="ai-docs" class="ai-documentation"><div class="container"><h2>AI-Generated Documentation</h2><div class="ai-content"><h1>Demo API</h1><p>This is a demonstration API showing user management capabilities.</p></div></div></section><section id="overview" class="api-overview"><div class="container"><h2>API Overview</h2><p class="api-description">Comprehensive API documentation generated from traffic analysis</p><h3>Base URLs</h3><ul class="server-list"><li><code>https://api.demo.com</code> - API Server</li></ul></div></section><section id="endpoints" class="endpoints"><div class="container"><h2>API Endpoints</h2><div class="path-item" data-path="/users"><h3 class="path-title">/users</h3><div class="operation" data-method="get" data-path="/users"><div class="operation-header"><span class="method method-get">GET</span><span class="summary">List resources</span></div><p class="description">GET /users - 2 requests processed, 145.0ms average response time, 100.0% success rate</p><h4>Parameters</h4><table class="parameters-table"><thead><tr><th>Name</th><th>Type</th><th>In</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>page</code></td><td>integer</td><td>query</td><td>No</td><td>Page number for pagination</td></tr><tr><td><code>limit</code></td><td>integer</td><td>query</td><td>No</td><td>Number of items per page</td></tr></tbody></table><h4>Responses</h4><div class="response-item"><h5>HTTP 200</h5><p>OK - Request successful</p><h6>application/json</h6><pre class="schema"><code>{
+  "$ref": "#/components/schemas/DefaultResponse"
+}</code></pre></div><div class="try-it-section"><h4>Try It Out</h4><form class="try-it-form" data-method="get" data-path="/users"><div class="form-group"><label for="page">page (query)</label><input type="text" id="page" name="page" data-in="query" ></div><div class="form-group"><label for="limit">limit (query)</label><input type="text" id="limit" name="limit" data-in="query" ></div><button type="submit" class="try-it-button">Send Request</button></form><div class="response-display" style="display: none;"><h5>Response</h5><pre class="response-content"></pre></div></div></div><div class="operation" data-method="post" data-path="/users"><div class="operation-header"><span class="method method-post">POST</span><span class="summary">Create a new resource</span></div><p class="description">POST /users - 1 requests processed, 200.0ms average response time, 100.0% success rate</p><h4>Request Body</h4><p><strong>Required</strong></p><h5>application/json</h5><pre class="schema"><code>{
+  "$ref": "#/components/schemas/DefaultRequest"
+}</code></pre><h4>Responses</h4><div class="response-item"><h5>HTTP 201</h5><p>Created - Resource created successfully</p><h6>application/json</h6><pre class="schema"><code>{
+  "$ref": "#/components/schemas/DefaultResponse"
+}</code></pre></div><div class="try-it-section"><h4>Try It Out</h4><form class="try-it-form" data-method="post" data-path="/users"><div class="form-group"><label for="request-body">Request Body</label><textarea id="request-body" name="body" rows="10" placeholder="Enter JSON request body"></textarea></div><button type="submit" class="try-it-button">Send Request</button></form><div class="response-display" style="display: none;"><h5>Response</h5><pre class="response-content"></pre></div></div></div></div><div class="path-item" data-path="/users/{id}"><h3 class="path-title">/users/{id}</h3><div class="operation" data-method="get" data-path="/users/{id}"><div class="operation-header"><span class="method method-get">GET</span><span class="summary">Get a specific resource</span></div><p class="description">GET /users/{id} - 3 requests processed, 80.0ms average response time, 66.7% success rate</p><h4>Parameters</h4><table class="parameters-table"><thead><tr><th>Name</th><th>Type</th><th>In</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td>path</td><td>Yes</td><td>The id identifier</td></tr></tbody></table><h4>Responses</h4><div class="response-item"><h5>HTTP 200</h5><p>OK - Request successful</p><h6>application/json</h6><pre class="schema"><code>{
+  "$ref": "#/components/schemas/DefaultResponse"
+}</code></pre></div><div class="response-item"><h5>HTTP 404</h5><p>Not Found - Resource not found</p></div><div class="try-it-section"><h4>Try It Out</h4><form class="try-it-form" data-method="get" data-path="/users/{id}"><div class="form-group"><label for="id">id (path) *</label><input type="text" id="id" name="id" data-in="path" required></div><button type="submit" class="try-it-button">Send Request</button></form><div class="response-display" style="display: none;"><h5>Response</h5><pre class="response-content"></pre></div></div></div></div></div></section><section id="schemas" class="schemas"><div class="container"><h2>Data Models</h2><div class="schema-item"><h3>Error</h3><pre class="schema"><code>{
+  "properties": {
+    "details": {
+      "description": "Additional error details",
+      "type": "object"
+    },
+    "error": {
+      "description": "Error code",
+      "type": "string"
+    },
+    "message": {
+      "description": "Error message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "error",
+    "message"
+  ],
+  "type": "object"
+}</code></pre></div><div class="schema-item"><h3>User</h3><pre class="schema"><code>{
+  "properties": {
+    "active": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "email": {
+      "format": "email",
+      "type": "string"
+    },
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "profile": {
+      "$ref": "#/components/schemas/UserProfile"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "email"
+  ],
+  "type": "object"
+}</code></pre></div><div class="schema-item"><h3>users_response</h3><pre class="schema"><code>{
+  "properties": {
+    "pagination": {
+      "$ref": "#/components/schemas/Pagination"
+    },
+    "users": {
+      "items": {
+        "$ref": "#/components/schemas/User"
+      },
+      "type": "array"
+    }
+  },
+  "type": "object"
+}</code></pre></div></div></section></main><footer class="footer"><div class="container"><p>Generated by DevDocs Pro - Real-time API documentation from traffic analysis</p><p>Contact: <a href="mailto:api@demo.com">api@demo.com</a></p></div></footer><script>// DevDocs Pro Interactive Documentation JavaScript
+
+(function() {
+    'use strict';
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    function init() {
+        setupNavigation();
+        setupTryItForms();
+        setupCodeCopying();
+        setupSearchFunctionality();
+        setupRealtimeUpdates();
+        setupResponsiveNavigation();
+    }
+
+    // Navigation functionality
+    function setupNavigation() {
+        const navLinks = document.querySelectorAll('.nav-menu a');
+        const sections = document.querySelectorAll('section[id]');
+
+        // Smooth scrolling for navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href.startsWith('#')) {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            });
+        });
+
+        // Update active navigation on scroll
+        function updateActiveNav() {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.pageYOffset >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveNav);
+        updateActiveNav(); // Initial call
+    }
+
+    // Try It functionality
+    function setupTryItForms() {
+        const forms = document.querySelectorAll('.try-it-form');
+        
+        forms.forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleApiRequest(this);
+            });
+        });
+    }
+
+    async function handleApiRequest(form) {
+        const method = form.dataset.method.toUpperCase();
+        const pathTemplate = form.dataset.path;
+        const button = form.querySelector('.try-it-button');
+        const responseDisplay = form.parentElement.querySelector('.response-display');
+        const responseContent = responseDisplay.querySelector('.response-content');
+
+        // Show loading state
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner"></span> Sending...';
+        responseDisplay.style.display = 'block';
+        responseContent.textContent = 'Sending request...';
+
+        try {
+            // Build URL
+            let url = pathTemplate;
+            const formData = new FormData(form);
+            const queryParams = new URLSearchParams();
+            let requestBody = null;
+
+            // Process form inputs
+            for (const [name, value] of formData.entries()) {
+                const input = form.querySelector(`[name="${name}"]`);
+                const paramIn = input.dataset.in;
+
+                if (paramIn === 'path') {
+                    url = url.replace(`{${name}}`, encodeURIComponent(value));
+                } else if (paramIn === 'query') {
+                    if (value.trim()) {
+                        queryParams.append(name, value);
+                    }
+                } else if (name === 'body') {
+                    if (value.trim()) {
+                        try {
+                            requestBody = JSON.parse(value);
+                        } catch (e) {
+                            throw new Error('Invalid JSON in request body');
+                        }
+                    }
+                }
+            }
+
+            // Add query parameters
+            if (queryParams.toString()) {
+                url += '?' + queryParams.toString();
+            }
+
+            // Get base URL (if available)
+            const baseUrl = getBaseUrl();
+            const fullUrl = baseUrl + url;
+
+            // Prepare request options
+            const requestOptions = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+
+            if (requestBody && ['POST', 'PUT', 'PATCH'].includes(method)) {
+                requestOptions.body = JSON.stringify(requestBody, null, 2);
+            }
+
+            // Add authentication if available
+            const authToken = getAuthToken();
+            if (authToken) {
+                requestOptions.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            // Make the request
+            const response = await fetch(fullUrl, requestOptions);
+            const responseText = await response.text();
+            
+            let responseData;
+            try {
+                responseData = JSON.parse(responseText);
+            } catch (e) {
+                responseData = responseText;
+            }
+
+            // Display response
+            const responseInfo = {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries()),
+                data: responseData
+            };
+
+            responseContent.innerHTML = formatResponse(responseInfo);
+            responseContent.className = `response-content ${response.ok ? 'status-success' : 'status-error'}`;
+
+        } catch (error) {
+            responseContent.innerHTML = `<span class="status-error">Error: ${error.message}</span>`;
+            responseContent.className = 'response-content status-error';
+        } finally {
+            // Reset button
+            button.disabled = false;
+            button.textContent = 'Send Request';
+        }
+    }
+
+    function getBaseUrl() {
+        // Try to get base URL from the page or use current origin
+        const serverList = document.querySelector('.server-list');
+        if (serverList) {
+            const firstServer = serverList.querySelector('code');
+            if (firstServer) {
+                return firstServer.textContent.trim();
+            }
+        }
+        return window.location.origin;
+    }
+
+    function getAuthToken() {
+        // Check for stored auth token
+        return localStorage.getItem('devdocs-auth-token') || '';
+    }
+
+    function formatResponse(responseInfo) {
+        const { status, statusText, headers, data } = responseInfo;
+        
+        let html = `<div class="response-status">
+            <strong>Status:</strong> ${status} ${statusText}
+        </div>`;
+        
+        html += `<div class="response-headers">
+            <strong>Headers:</strong>
+            <pre>${JSON.stringify(headers, null, 2)}</pre>
+        </div>`;
+        
+        html += `<div class="response-body">
+            <strong>Body:</strong>
+            <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+        </div>`;
+        
+        return html;
+    }
+
+    // Code copying functionality
+    function setupCodeCopying() {
+        const codeBlocks = document.querySelectorAll('pre code');
+        
+        codeBlocks.forEach(block => {
+            const pre = block.parentElement;
+            const button = document.createElement('button');
+            button.className = 'copy-button';
+            button.textContent = 'Copy';
+            button.style.cssText = `
+                position: absolute;
+                top: 0.5rem;
+                right: 0.5rem;
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                padding: 0.25rem 0.5rem;
+                border-radius: var(--radius-sm);
+                font-size: 0.75rem;
+                cursor: pointer;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            `;
+            
+            pre.style.position = 'relative';
+            pre.appendChild(button);
+            
+            pre.addEventListener('mouseenter', () => {
+                button.style.opacity = '1';
+            });
+            
+            pre.addEventListener('mouseleave', () => {
+                button.style.opacity = '0';
+            });
+            
+            button.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(block.textContent);
+                    button.textContent = 'Copied!';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy code:', err);
+                }
+            });
+        });
+    }
+
+    // Search functionality
+    function setupSearchFunctionality() {
+        // Create search input
+        const nav = document.querySelector('.navigation .container');
+        if (nav) {
+            const searchContainer = document.createElement('div');
+            searchContainer.className = 'search-container';
+            searchContainer.style.cssText = `
+                position: relative;
+                margin-left: auto;
+            `;
+            
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search endpoints...';
+            searchInput.className = 'search-input';
+            searchInput.style.cssText = `
+                padding: 0.5rem 1rem;
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                font-size: 0.875rem;
+                width: 250px;
+            `;
+            
+            const searchResults = document.createElement('div');
+            searchResults.className = 'search-results';
+            searchResults.style.cssText = `
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-lg);
+                max-height: 300px;
+                overflow-y: auto;
+                z-index: 1000;
+                display: none;
+            `;
+            
+            searchContainer.appendChild(searchInput);
+            searchContainer.appendChild(searchResults);
+            nav.appendChild(searchContainer);
+            
+            // Search functionality
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch(this.value, searchResults);
+                }, 300);
+            });
+            
+            // Hide results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchContainer.contains(e.target)) {
+                    searchResults.style.display = 'none';
+                }
+            });
+        }
+    }
+
+    function performSearch(query, resultsContainer) {
+        if (!query.trim()) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+        
+        const operations = document.querySelectorAll('.operation');
+        const results = [];
+        
+        operations.forEach(operation => {
+            const method = operation.dataset.method;
+            const path = operation.dataset.path;
+            const summary = operation.querySelector('.summary')?.textContent || '';
+            const description = operation.querySelector('.description')?.textContent || '';
+            
+            const searchText = `${method} ${path} ${summary} ${description}`.toLowerCase();
+            if (searchText.includes(query.toLowerCase())) {
+                results.push({
+                    method,
+                    path,
+                    summary,
+                    element: operation
+                });
+            }
+        });
+        
+        displaySearchResults(results, resultsContainer);
+    }
+
+    function displaySearchResults(results, container) {
+        if (results.length === 0) {
+            container.innerHTML = '<div style="padding: 1rem; color: var(--text-muted);">No results found</div>';
+        } else {
+            container.innerHTML = results.map(result => `
+                <div class="search-result" style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); cursor: pointer;">
+                    <div style="font-weight: 500;">
+                        <span class="method method-${result.method.toLowerCase()}" style="margin-right: 0.5rem;">${result.method.toUpperCase()}</span>
+                        ${result.path}
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                        ${result.summary}
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add click handlers
+            container.querySelectorAll('.search-result').forEach((resultEl, index) => {
+                resultEl.addEventListener('click', () => {
+                    results[index].element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                    container.style.display = 'none';
+                });
+            });
+        }
+        
+        container.style.display = 'block';
+    }
+
+    // Real-time updates via WebSocket
+    function setupRealtimeUpdates() {
+        if (!window.WebSocket) {
+            return; // WebSocket not supported
+        }
+        
+        // Try to connect to WebSocket for real-time updates
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/documentation`;
+        
+        try {
+            const ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('Connected to real-time updates');
+                showNotification('Connected to real-time updates', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const update = JSON.parse(event.data);
+                    handleRealtimeUpdate(update);
+                } catch (e) {
+                    console.error('Failed to parse WebSocket message:', e);
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('Disconnected from real-time updates');
+                // Try to reconnect after 5 seconds
+                setTimeout(() => setupRealtimeUpdates(), 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+            
+        } catch (e) {
+            console.log('Real-time updates not available');
+        }
+    }
+
+    function handleRealtimeUpdate(update) {
+        switch (update.type) {
+            case 'EndpointAdded':
+                showNotification(`New endpoint discovered: ${update.endpoint.method} ${update.endpoint.path_pattern}`, 'info');
+                break;
+            case 'EndpointUpdated':
+                showNotification(`Endpoint updated: ${update.endpoint.method} ${update.endpoint.path_pattern}`, 'info');
+                break;
+            case 'SchemaAdded':
+                showNotification(`New schema discovered: ${update.name}`, 'info');
+                break;
+            case 'SchemaUpdated':
+                showNotification(`Schema updated: ${update.name}`, 'info');
+                break;
+            case 'DocumentationUpdated':
+                showNotification('Documentation has been updated', 'success');
+                // Optionally reload the page or update content
+                break;
+            case 'BreakingChange':
+                showNotification(`Breaking change detected: ${update.description}`, 'warning');
+                break;
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: ${type === 'success' ? 'var(--success-color)' : 
+                        type === 'warning' ? 'var(--warning-color)' : 
+                        type === 'error' ? 'var(--error-color)' : 'var(--primary-color)'};
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+        
+        // Add click to dismiss
+        notification.addEventListener('click', () => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        });
+    }
+
+    // Responsive navigation
+    function setupResponsiveNavigation() {
+        const nav = document.querySelector('.navigation');
+        const navMenu = document.querySelector('.nav-menu');
+        
+        if (window.innerWidth <= 768) {
+            // Add mobile menu toggle
+            const toggleButton = document.createElement('button');
+            toggleButton.className = 'nav-toggle';
+            toggleButton.innerHTML = '☰';
+            toggleButton.style.cssText = `
+                display: block;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0.5rem;
+                margin-left: auto;
+            `;
+            
+            nav.querySelector('.container').appendChild(toggleButton);
+            
+            toggleButton.addEventListener('click', () => {
+                navMenu.classList.toggle('mobile-open');
+            });
+        }
+    }
+
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .nav-menu.mobile-open {
+            display: flex !important;
+            flex-direction: column;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+})();</script></body></html>

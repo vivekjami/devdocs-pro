@@ -34,7 +34,7 @@ impl Default for GeminiConfig {
         Self {
             api_key: std::env::var("GEMINI_API_KEY").unwrap_or_default(),
             endpoint: "https://generativelanguage.googleapis.com/v1beta/models".to_string(),
-            model: "gemini-pro".to_string(),
+            model: "gemini-2.5-flash".to_string(),
             timeout: Duration::from_secs(30),
             max_tokens: 4096,
             temperature: 0.3,
