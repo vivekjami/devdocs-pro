@@ -1,0 +1,28 @@
+name: Workflow Validation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Validate GitHub Action workflow files
+      run: |
+        echo "Validating GitHub Action workflow files..."
+        
+        # Install actionlint
+        bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+        
+        # Run actionlint
+        ./actionlint -color
+        
+        echo "All workflow files validated successfully!"
