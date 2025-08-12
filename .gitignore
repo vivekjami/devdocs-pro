@@ -118,3 +118,5 @@ tramp
 .tool-versions
 
 .env
+
+.env.production

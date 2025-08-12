@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  devdocs-pro:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Required API Keys
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEVDOCS_API_KEY=${DEVDOCS_API_KEY:-devdocs_dev_key_12345}
+      
+      # Service Configuration
+      - DEVDOCS_SERVER_URL=${DEVDOCS_SERVER_URL:-http://localhost:3000}
+      - DEVDOCS_PORT=${DEVDOCS_PORT:-3000}
+      
+      # Traffic Sampling
+      - DEVDOCS_SAMPLING_RATE=${DEVDOCS_SAMPLING_RATE:-0.1}
+      - DEVDOCS_MAX_BODY_SIZE=${DEVDOCS_MAX_BODY_SIZE:-10485760}
+      
+      # Security & Privacy
+      - DEVDOCS_ENABLE_PII_FILTERING=${DEVDOCS_ENABLE_PII_FILTERING:-true}
+      - DEVDOCS_EXCLUDED_PATHS=${DEVDOCS_EXCLUDED_PATHS:-/health,/metrics,/favicon.ico,/status}
+      
+      # Body Capture
+      - DEVDOCS_CAPTURE_REQUEST_BODIES=${DEVDOCS_CAPTURE_REQUEST_BODIES:-true}
+      - DEVDOCS_CAPTURE_RESPONSE_BODIES=${DEVDOCS_CAPTURE_RESPONSE_BODIES:-true}
+      - DEVDOCS_ENABLE_COMPRESSION_DETECTION=${DEVDOCS_ENABLE_COMPRESSION_DETECTION:-true}
+      - DEVDOCS_ENABLE_DECOMPRESSION=${DEVDOCS_ENABLE_DECOMPRESSION:-true}
+      
+      # Storage
+      - DEVDOCS_TEMP_DIR=${DEVDOCS_TEMP_DIR:-/app/data/temp}
+      - DEVDOCS_MAX_MEMORY_SIZE=${DEVDOCS_MAX_MEMORY_SIZE:-1048576}
+      - DEVDOCS_STORAGE_DAYS=${DEVDOCS_STORAGE_DAYS:-30}
+      
+      # AI Processing
+      - DEVDOCS_AI_BATCH_SIZE=${DEVDOCS_AI_BATCH_SIZE:-10}
+      - DEVDOCS_AI_BATCH_TIMEOUT=${DEVDOCS_AI_BATCH_TIMEOUT:-30}
+      - DEVDOCS_AI_TEMPERATURE=${DEVDOCS_AI_TEMPERATURE:-0.2}
+      - DEVDOCS_AI_MAX_TOKENS=${DEVDOCS_AI_MAX_TOKENS:-2048}
+      
+      # Security Configuration
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_change_in_production}
+      - DEVDOCS_MASTER_KEY=${DEVDOCS_MASTER_KEY:-your_master_key_change_in_production}
+      - SECRETS_MASTER_KEY=${SECRETS_MASTER_KEY:-your_secrets_key_change_in_production}
+      - SECURITY_MODE=${SECURITY_MODE:-production}
+      - ENCRYPTION_ENABLED=${ENCRYPTION_ENABLED:-true}
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - RATE_LIMITING_ENABLED=${RATE_LIMITING_ENABLED:-true}
+      - MONITORING_ENABLED=${MONITORING_ENABLED:-true}
+      
+      # Logging
+      - RUST_LOG=${RUST_LOG:-info,devdocs=debug}
+      - DEVDOCS_LOG_LEVEL=${DEVDOCS_LOG_LEVEL:-info}
+    
+    volumes:
+      - devdocs_data:/app/data
+      - devdocs_logs:/app/logs
+      - ./security_config.yaml:/app/config/security_config.yaml:ro
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: PostgreSQL for production data storage
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=devdocs
+      - POSTGRES_USER=devdocs
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-devdocs_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    profiles:
+      - database
+
+  # Optional: Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - cache
+
+volumes:
+  devdocs_data:
+  devdocs_logs:
+  postgres_data:
+  redis_data:
